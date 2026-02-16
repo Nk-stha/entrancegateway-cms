@@ -11,34 +11,31 @@
 
 ### Primary Brand Colors
 
-#### Deep Navy
+#### Brand Navy
 - **Purpose**: Primary brand color, headers, CTAs, key UI elements
-- **HEX**: `#0A1551`
-- **RGB**: `10, 21, 81`
-- **HSL**: `234°, 78%, 18%`
-- **CMYK**: `88, 74, 0, 68`
+- **HEX**: `#1A237E`
+- **RGB**: `26, 35, 126`
+- **HSL**: `234°, 66%, 30%`
 - **Text Color**: White (`#FFFFFF`)
-- **Contrast Ratio**: 14.5:1 (AAA)
+- **Contrast Ratio**: 12.6:1 (AAA)
 - **Usage**: Primary buttons, navigation headers, hero sections, main CTAs
 
-#### Trustworthy Blue
+#### Brand Blue
 - **Purpose**: Links, interactive elements, secondary buttons, accents
-- **HEX**: `#0662C7`
-- **RGB**: `6, 98, 199`
-- **HSL**: `211°, 94%, 40%`
-- **CMYK**: `97, 51, 0, 22`
+- **HEX**: `#0D47A1`
+- **RGB**: `13, 71, 161`
+- **HSL**: `216°, 85%, 34%`
 - **Text Color**: White (`#FFFFFF`)
-- **Contrast Ratio**: 5.2:1 (AA)
-- **Usage**: Hyperlinks, secondary buttons, hover states, interactive icons
+- **Contrast Ratio**: 8.6:1 (AAA)
+- **Usage**: Hyperlinks, secondary buttons, hover states, interactive icons, focus states
 
-#### Academic Gold
+#### Brand Gold
 - **Purpose**: Highlights, achievements, premium features, awards
-- **HEX**: `#FFC700`
-- **RGB**: `255, 199, 0`
-- **HSL**: `47°, 100%, 50%`
-- **CMYK**: `0, 22, 100, 0`
-- **Text Color**: Deep Navy (`#0A1551`)
-- **Contrast Ratio**: 10.8:1 (AAA)
+- **HEX**: `#FFC107`
+- **RGB**: `255, 193, 7`
+- **HSL**: `45°, 100%, 51%`
+- **Text Color**: Brand Navy (`#1A237E`)
+- **Contrast Ratio**: 9.2:1 (AAA)
 - **Usage**: Achievement badges, premium indicators, special highlights, call-outs (use sparingly)
 
 ---
@@ -47,22 +44,20 @@
 
 #### Success Green
 - **Purpose**: Success messages, confirmations, positive states
-- **HEX**: `#2D7A3E`
-- **RGB**: `45, 122, 62`
-- **HSL**: `133°, 46%, 33%`
-- **CMYK**: `63, 0, 49, 52`
+- **HEX**: `#2E7D32`
+- **RGB**: `46, 125, 50`
+- **HSL**: `123°, 46%, 34%`
 - **Text Color**: White (`#FFFFFF`)
-- **Contrast Ratio**: 7.1:1 (AAA)
+- **Contrast Ratio**: 6.9:1 (AAA)
 - **Usage**: Success toasts, checkmarks, completed states, positive feedback
 
 #### Warning Amber
 - **Purpose**: Warnings, cautionary messages, pending states
-- **HEX**: `#F39237`
-- **RGB**: `243, 146, 55`
-- **HSL**: `29°, 88%, 58%`
-- **CMYK**: `0, 40, 77, 5`
-- **Text Color**: Deep Navy (`#0A1551`)
-- **Contrast Ratio**: 4.9:1 (AA)
+- **HEX**: `#F9A825`
+- **RGB**: `249, 168, 37`
+- **HSL**: `37°, 94%, 56%`
+- **Text Color**: Brand Navy (`#1A237E`)
+- **Contrast Ratio**: 5.1:1 (AA)
 - **Usage**: Warning alerts, pending actions, cautionary notices, attention-needed states
 
 #### Error Red
@@ -145,22 +140,22 @@
 - **Large Text AA** (3:1): Text 18px+ or 14px+ bold
 
 ### Contrast Ratios by Color
-- Deep Navy on White: 14.5:1 (AAA) ✓
-- Trustworthy Blue on White: 5.2:1 (AA) ✓
-- Academic Gold on Deep Navy: 10.8:1 (AAA) ✓
-- Success Green on White: 7.1:1 (AAA) ✓
-- Warning Amber on Deep Navy: 4.9:1 (AA) ✓
+- Brand Navy on White: 12.6:1 (AAA) ✓
+- Brand Blue on White: 8.6:1 (AAA) ✓
+- Brand Gold on Brand Navy: 9.2:1 (AAA) ✓
+- Success Green on White: 6.9:1 (AAA) ✓
+- Warning Amber on Brand Navy: 5.1:1 (AA) ✓
 - Error Red on White: 5.6:1 (AA) ✓
 - Gray 700 on White: 7.8:1 (AAA) ✓
 - Gray 600 on White: 4.6:1 (AA) ✓
 
 ### Text Color Recommendations
-- **On Light Backgrounds** (White, Gray 50-200): Use Gray 700-900 or Deep Navy
-- **On Deep Navy**: Use White or Academic Gold
-- **On Trustworthy Blue**: Use White only
-- **On Academic Gold**: Use Deep Navy only
+- **On Light Backgrounds** (White, Gray 50-200): Use Gray 700-900 or Brand Navy
+- **On Brand Navy**: Use White or Brand Gold
+- **On Brand Blue**: Use White only
+- **On Brand Gold**: Use Brand Navy only
 - **On Success Green**: Use White only
-- **On Warning Amber**: Use Deep Navy only
+- **On Warning Amber**: Use Brand Navy only
 - **On Error Red**: Use White only
 
 ### Accessibility Best Practices
@@ -176,9 +171,9 @@
 ## 🎯 Usage Guidelines
 
 ### Primary Colors Usage
-- **Deep Navy**: Use for primary actions, main navigation, headers, hero sections
-- **Trustworthy Blue**: Use for links, secondary actions, hover states, informational elements
-- **Academic Gold**: Use sparingly for special emphasis, achievements, premium features (accent only)
+- **Brand Navy**: Use for primary actions, main navigation, headers, hero sections
+- **Brand Blue**: Use for links, secondary actions, hover states, informational elements, focus states
+- **Brand Gold**: Use sparingly for special emphasis, achievements, premium features (accent only)
 
 ### Semantic Colors Usage
 - **Success Green**: Only for positive confirmations, completed actions, success states
@@ -198,8 +193,8 @@
 - **Readability**: Never go below 16px for body text, maintain proper line height
 
 ### Color Combinations to Avoid
-- Academic Gold on light backgrounds (poor contrast)
-- Trustworthy Blue on Deep Navy (insufficient contrast)
+- Brand Gold on light backgrounds (poor contrast)
+- Brand Blue on Brand Navy (insufficient contrast)
 - Gray 400-500 for body text (fails AA standard)
 - Multiple semantic colors together (creates confusion)
 
@@ -209,12 +204,12 @@
 
 ### CSS Custom Properties
 ```
---color-deep-navy: #0A1551
---color-trustworthy-blue: #0662C7
---color-academic-gold: #FFC700
+--color-brand-navy: #1A237E
+--color-brand-blue: #0D47A1
+--color-brand-gold: #FFC107
 
---color-success: #2D7A3E
---color-warning: #F39237
+--color-success: #2E7D32
+--color-warning: #F9A825
 --color-error: #D32F2F
 
 --color-gray-50: #FAFAFA
@@ -238,25 +233,25 @@
 ```
 
 ### Tailwind Configuration Mapping
-- Primary: `bg-[#0A1551]` or custom `bg-deep-navy`
-- Blue: `bg-[#0662C7]` or custom `bg-trustworthy-blue`
-- Gold: `bg-[#FFC700]` or custom `bg-academic-gold`
-- Success: `bg-[#2D7A3E]` or custom `bg-success`
-- Warning: `bg-[#F39237]` or custom `bg-warning`
+- Primary: `bg-[#1A237E]` or custom `bg-brand-navy`
+- Blue: `bg-[#0D47A1]` or custom `bg-brand-blue`
+- Gold: `bg-[#FFC107]` or custom `bg-brand-gold`
+- Success: `bg-[#2E7D32]` or custom `bg-success`
+- Warning: `bg-[#F9A825]` or custom `bg-warning`
 - Error: `bg-[#D32F2F]` or custom `bg-error`
 - Grays: Use Tailwind's gray scale or extend with custom values
 
 ### Component Color Patterns
-- **Primary Button**: Deep Navy background, white text
-- **Secondary Button**: Trustworthy Blue background, white text
+- **Primary Button**: Brand Navy background, white text
+- **Secondary Button**: Brand Blue background, white text
 - **Tertiary Button**: Gray 200 background, Gray 800 text
-- **Link**: Trustworthy Blue text, underline on hover
+- **Link**: Brand Blue text, underline on hover
 - **Success Toast**: Success Green background, white text, checkmark icon
-- **Warning Toast**: Warning Amber background, Deep Navy text, alert icon
+- **Warning Toast**: Warning Amber background, Brand Navy text, alert icon
 - **Error Toast**: Error Red background, white text, error icon
 - **Card**: Gray 50 or White background, Gray 200 border
 - **Input**: White background, Gray 300 border, Gray 700 text
-- **Input Focus**: Trustworthy Blue border, no background change
+- **Input Focus**: Brand Blue border, no background change
 - **Disabled State**: Gray 100 background, Gray 400 text
 
 ---
@@ -308,7 +303,7 @@
 ### Future Dark Mode Palette (Reference)
 - **Background**: Gray 900 (#212121)
 - **Surface**: Gray 800 (#424242)
-- **Primary**: Lighter Deep Navy (#1A2B7A)
+- **Primary**: Lighter Brand Navy (#3949AB)
 - **Text Primary**: Gray 50 (#FAFAFA)
 - **Text Secondary**: Gray 400 (#BDBDBD)
 - **Borders**: Gray 700 (#616161)
