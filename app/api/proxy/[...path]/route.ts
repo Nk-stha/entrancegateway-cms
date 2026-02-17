@@ -60,18 +60,27 @@ async function proxyRequest(
     }
     
     const contentType = request.headers.get('content-type');
-    if (contentType) {
+    if (contentType && !contentType.includes('multipart/form-data')) {
       headers['Content-Type'] = contentType;
     }
 
     // Get request body for POST, PUT, PATCH
-    let body: string | undefined;
+    let body: string | FormData | undefined;
     if (['POST', 'PUT', 'PATCH'].includes(method)) {
-      try {
-        const requestBody = await request.json();
-        body = JSON.stringify(requestBody);
-      } catch {
-        // No body or invalid JSON
+      // Check if it's multipart/form-data
+      if (contentType?.includes('multipart/form-data')) {
+        try {
+          body = await request.formData();
+        } catch {
+          // No body or invalid form data
+        }
+      } else {
+        try {
+          const requestBody = await request.json();
+          body = JSON.stringify(requestBody);
+        } catch {
+          // No body or invalid JSON
+        }
       }
     }
 
@@ -81,7 +90,21 @@ async function proxyRequest(
       body,
     });
 
-    const data = await response.json();
+    // Check if response is JSON
+    const responseContentType = response.headers.get('content-type');
+    const isJson = responseContentType?.includes('application/json');
+
+    let data;
+    if (isJson) {
+      data = await response.json();
+    } else {
+      // Handle non-JSON responses (like plain text error messages)
+      const text = await response.text();
+      data = {
+        message: text,
+        error: text,
+      };
+    }
 
     return NextResponse.json(data, {
       status: response.status,

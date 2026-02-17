@@ -64,7 +64,7 @@ export default function EditTrainingPage() {
     };
 
     loadTraining();
-  }, [trainingId, setFormData]);
+  }, [trainingId]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
