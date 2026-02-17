@@ -30,11 +30,47 @@ export default function EnrollmentsPage() {
         border: 'rgba(249, 168, 37, 0.2)',
         label: 'PENDING',
       },
+      payment_pending: {
+        bg: 'rgba(249, 168, 37, 0.1)',
+        text: 'var(--color-warning)',
+        border: 'rgba(249, 168, 37, 0.2)',
+        label: 'PAYMENT PENDING',
+      },
+      payment_received_admin_approval_pending: {
+        bg: 'rgba(255, 193, 7, 0.1)',
+        text: 'var(--color-brand-gold)',
+        border: 'rgba(255, 193, 7, 0.2)',
+        label: 'AWAITING APPROVAL',
+      },
       completed: {
         bg: 'rgba(13, 71, 161, 0.1)',
         text: 'var(--color-brand-blue)',
         border: 'rgba(13, 71, 161, 0.2)',
         label: 'COMPLETED',
+      },
+      cancelled: {
+        bg: 'rgba(107, 114, 128, 0.1)',
+        text: 'var(--color-gray-600)',
+        border: 'rgba(107, 114, 128, 0.2)',
+        label: 'CANCELLED',
+      },
+      payment_failed: {
+        bg: 'rgba(211, 47, 47, 0.1)',
+        text: 'var(--color-error)',
+        border: 'rgba(211, 47, 47, 0.2)',
+        label: 'PAYMENT FAILED',
+      },
+      expired: {
+        bg: 'rgba(107, 114, 128, 0.1)',
+        text: 'var(--color-gray-500)',
+        border: 'rgba(107, 114, 128, 0.2)',
+        label: 'EXPIRED',
+      },
+      suspended: {
+        bg: 'rgba(211, 47, 47, 0.1)',
+        text: 'var(--color-error)',
+        border: 'rgba(211, 47, 47, 0.2)',
+        label: 'SUSPENDED',
       },
     };
     return configs[status as keyof typeof configs] || configs.pending;

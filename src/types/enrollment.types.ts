@@ -4,7 +4,7 @@ export interface Enrollment {
   studentInitials: string;
   trainingName: string;
   progress: number;
-  status: 'active' | 'pending' | 'completed';
+  status: 'active' | 'pending' | 'completed' | 'payment_pending' | 'payment_received_admin_approval_pending' | 'cancelled' | 'payment_failed' | 'expired' | 'suspended';
   paidAmount: number;
   paymentMethod: 'esewa' | 'khalti' | 'bank_transfer';
   paymentVerified: boolean;
@@ -18,7 +18,7 @@ export interface EnrollmentApiResponse {
   userName: string;
   trainingId: number;
   trainingName: string;
-  status: 'ACTIVE' | 'PENDING' | 'COMPLETED';
+  status: 'PENDING' | 'PAYMENT_PENDING' | 'PAYMENT_RECEIVED_ADMIN_APPROVAL_PENDING' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED' | 'PAYMENT_FAILED' | 'EXPIRED' | 'SUSPENDED';
   enrollmentDate: string;
   completionDate: string | null;
   paidAmount: number;
@@ -58,5 +58,5 @@ export interface EnrollmentFilters {
   dateRange: string;
 }
 
-export type EnrollmentStatus = 'active' | 'pending' | 'completed';
+export type EnrollmentStatus = 'active' | 'pending' | 'completed' | 'payment_pending' | 'payment_received_admin_approval_pending' | 'cancelled' | 'payment_failed' | 'expired' | 'suspended';
 export type PaymentMethod = 'esewa' | 'khalti' | 'bank_transfer';

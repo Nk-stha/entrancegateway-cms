@@ -97,17 +97,41 @@ export default function EnrollmentDetailPage() {
 
   const getStatusConfig = (status: string) => {
     const configs = {
-      ACTIVE: {
-        bg: 'var(--color-success)',
-        label: 'ACTIVE',
-      },
       PENDING: {
         bg: 'var(--color-warning)',
         label: 'PENDING',
       },
+      PAYMENT_PENDING: {
+        bg: 'var(--color-warning)',
+        label: 'PAYMENT PENDING',
+      },
+      PAYMENT_RECEIVED_ADMIN_APPROVAL_PENDING: {
+        bg: 'var(--color-brand-gold)',
+        label: 'AWAITING APPROVAL',
+      },
+      ACTIVE: {
+        bg: 'var(--color-success)',
+        label: 'ACTIVE',
+      },
       COMPLETED: {
         bg: 'var(--color-brand-blue)',
         label: 'COMPLETED',
+      },
+      CANCELLED: {
+        bg: 'var(--color-gray-600)',
+        label: 'CANCELLED',
+      },
+      PAYMENT_FAILED: {
+        bg: 'var(--color-error)',
+        label: 'PAYMENT FAILED',
+      },
+      EXPIRED: {
+        bg: 'var(--color-gray-500)',
+        label: 'EXPIRED',
+      },
+      SUSPENDED: {
+        bg: 'var(--color-error)',
+        label: 'SUSPENDED',
       },
     };
     return configs[status as keyof typeof configs] || configs.PENDING;
@@ -235,24 +259,7 @@ export default function EnrollmentDetailPage() {
             </span>
           </div>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-            <button className="inline-flex items-center justify-center px-4 py-2 rounded-lg font-bold transition-colors shadow-sm text-sm md:text-base"
-              style={{
-                backgroundColor: 'var(--color-brand-gold)',
-                color: 'var(--color-brand-navy)',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#FFD54F';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'var(--color-brand-gold)';
-              }}
-            >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-              Download Invoice
-            </button>
-            {enrollment.status === 'PENDING' && (
+            {(enrollment.status === 'PENDING' || enrollment.status === 'PAYMENT_RECEIVED_ADMIN_APPROVAL_PENDING') && (
               <>
                 <button
                   onClick={handleApprove}

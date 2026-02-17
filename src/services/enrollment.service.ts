@@ -19,11 +19,17 @@ class EnrollmentService {
         .substring(0, 2);
     };
 
-    const mapStatus = (apiStatus: string): 'active' | 'pending' | 'completed' => {
-      const statusMap: Record<string, 'active' | 'pending' | 'completed'> = {
+    const mapStatus = (apiStatus: string): 'active' | 'pending' | 'completed' | 'payment_pending' | 'payment_received_admin_approval_pending' | 'cancelled' | 'payment_failed' | 'expired' | 'suspended' => {
+      const statusMap: Record<string, 'active' | 'pending' | 'completed' | 'payment_pending' | 'payment_received_admin_approval_pending' | 'cancelled' | 'payment_failed' | 'expired' | 'suspended'> = {
         'ACTIVE': 'active',
         'PENDING': 'pending',
+        'PAYMENT_PENDING': 'payment_pending',
+        'PAYMENT_RECEIVED_ADMIN_APPROVAL_PENDING': 'payment_received_admin_approval_pending',
         'COMPLETED': 'completed',
+        'CANCELLED': 'cancelled',
+        'PAYMENT_FAILED': 'payment_failed',
+        'EXPIRED': 'expired',
+        'SUSPENDED': 'suspended',
       };
       return statusMap[apiStatus] || 'pending';
     };
