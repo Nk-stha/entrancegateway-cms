@@ -15,7 +15,7 @@ const navItems: NavItem[] = [
   { label: 'Courses', href: '/dashboard/courses', icon: 'book' },
   { label: 'Training', href: '/dashboard/training', icon: 'model_training' },
   { label: 'Enrollments', href: '/dashboard/enrollments', icon: 'assignment' },
-  { label: 'Blogs', href: '/dashboard/blogs', icon: 'rss_feed' },
+  { label: 'Blog', href: '/dashboard/blog', icon: 'rss_feed' },
   { label: 'Audit Logs', href: '/dashboard/audit-logs', icon: 'history' },
   { label: 'Settings', href: '/dashboard/settings', icon: 'settings' },
 ];
