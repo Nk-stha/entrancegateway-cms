@@ -46,16 +46,14 @@ export default function EnrollmentDetailPage() {
     if (!enrollment) return;
 
     setActionLoading(true);
-    try {
-      const updatedEnrollment = await enrollmentService.approveEnrollment(enrollmentId);
-      if (updatedEnrollment) {
-        setEnrollment(updatedEnrollment);
-        toast.success('Enrollment approved successfully');
-      }
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to approve enrollment');
-    } finally {
-      setActionLoading(false);
+    const updatedEnrollment = await enrollmentService.approveEnrollment(enrollmentId);
+    setActionLoading(false);
+    
+    if (updatedEnrollment) {
+      setEnrollment(updatedEnrollment);
+      toast.success('Enrollment approved successfully');
+    } else {
+      toast.error('Failed to approve enrollment');
     }
   };
 
@@ -66,18 +64,16 @@ export default function EnrollmentDetailPage() {
     }
 
     setActionLoading(true);
-    try {
-      const updatedEnrollment = await enrollmentService.rejectEnrollment(enrollmentId, rejectionReason);
-      if (updatedEnrollment) {
-        setEnrollment(updatedEnrollment);
-        toast.success('Enrollment rejected');
-        setShowRejectModal(false);
-        setRejectionReason('');
-      }
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to reject enrollment');
-    } finally {
-      setActionLoading(false);
+    const updatedEnrollment = await enrollmentService.rejectEnrollment(enrollmentId, rejectionReason);
+    setActionLoading(false);
+    
+    if (updatedEnrollment) {
+      setEnrollment(updatedEnrollment);
+      toast.success('Enrollment rejected');
+      setShowRejectModal(false);
+      setRejectionReason('');
+    } else {
+      toast.error('Failed to reject enrollment');
     }
   };
 
@@ -85,13 +81,14 @@ export default function EnrollmentDetailPage() {
     if (!enrollment) return;
 
     setActionLoading(true);
-    try {
-      await enrollmentService.cancelEnrollment(enrollmentId);
+    const success = await enrollmentService.cancelEnrollment(enrollmentId);
+    
+    if (success) {
       toast.success('Enrollment cancelled successfully');
       setShowCancelModal(false);
       router.push('/dashboard/enrollments');
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to cancel enrollment');
+    } else {
+      toast.error('Failed to cancel enrollment');
       setActionLoading(false);
     }
   };

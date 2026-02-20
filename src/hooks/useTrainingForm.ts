@@ -39,10 +39,6 @@ export function useTrainingForm() {
       newErrors.startDate = 'Start date is required';
     }
 
-    if (!formData.endDate) {
-      newErrors.endDate = 'End date is required';
-    }
-
     if (formData.startDate && formData.endDate && formData.startDate > formData.endDate) {
       newErrors.endDate = 'End date must be after start date';
     }

@@ -275,7 +275,6 @@ export default function EditTrainingPage() {
                 value={formData.endDate}
                 onChange={(e) => handleChange('endDate', e.target.value)}
                 error={errors.endDate}
-                required
               />
               <Select
                 label="Training Type"

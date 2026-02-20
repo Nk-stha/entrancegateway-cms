@@ -163,27 +163,23 @@ class EnrollmentService {
       );
 
       if (!response || !response.data) {
-        throw new Error('Invalid response format');
+        console.error(`Failed to approve enrollment ${enrollmentId}: Invalid response format`);
+        return null;
       }
 
       return response.data;
     } catch (error) {
       const apiError = error as ApiError;
-
-      if (apiError.status === 404) {
-        console.error(`Enrollment ${enrollmentId} not found`);
-        throw new Error('Enrollment not found');
-      }
-
       console.error(`Failed to approve enrollment ${enrollmentId}:`, apiError);
-      throw new Error('Failed to approve enrollment');
+      return null;
     }
   }
 
   async rejectEnrollment(enrollmentId: number, reason: string): Promise<EnrollmentApiResponse | null> {
     try {
       if (!reason || reason.trim().length === 0) {
-        throw new Error('Rejection reason is required');
+        console.error('Rejection reason is required');
+        return null;
       }
 
       const response = await apiClient.patch<EnrollmentApiResponse>(
@@ -191,25 +187,15 @@ class EnrollmentService {
       );
 
       if (!response || !response.data) {
-        throw new Error('Invalid response format');
+        console.error(`Failed to reject enrollment ${enrollmentId}: Invalid response format`);
+        return null;
       }
 
       return response.data;
     } catch (error) {
       const apiError = error as ApiError;
-
-      if (apiError.status === 400) {
-        console.error('Missing or invalid rejection reason');
-        throw new Error('Rejection reason is required');
-      }
-
-      if (apiError.status === 404) {
-        console.error(`Enrollment ${enrollmentId} not found`);
-        throw new Error('Enrollment not found');
-      }
-
       console.error(`Failed to reject enrollment ${enrollmentId}:`, apiError);
-      throw new Error('Failed to reject enrollment');
+      return null;
     }
   }
 
@@ -219,14 +205,8 @@ class EnrollmentService {
       return true;
     } catch (error) {
       const apiError = error as ApiError;
-
-      if (apiError.status === 404) {
-        console.error(`Enrollment ${enrollmentId} not found`);
-        throw new Error('Enrollment not found');
-      }
-
       console.error(`Failed to cancel enrollment ${enrollmentId}:`, apiError);
-      throw new Error('Failed to cancel enrollment');
+      return false;
     }
   }
 }
