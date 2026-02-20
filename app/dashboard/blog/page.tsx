@@ -21,7 +21,7 @@ export default function BlogListPage() {
   const { blogs, loading, totalElements, totalPages, currentPage, refetch } = useBlogs({
     page,
     size: pageSize,
-    sortBy: 'createdAt',
+    sortBy: 'createdDate',
     sortDir: 'desc',
     status: filters.status || undefined,
     search: filters.search || undefined,
