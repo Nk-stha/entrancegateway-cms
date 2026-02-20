@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { ProtectedRoute } from '@/components/providers/ProtectedRoute';
 import { DashboardLayout } from '@/components/layouts/DashboardLayout';
 import { enrollmentService } from '@/services/enrollment.service';
@@ -433,16 +434,30 @@ export default function EnrollmentDetailPage() {
                     <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
                       Proof of Payment
                     </label>
-                    <div className="relative group rounded-xl overflow-hidden border border-gray-200 bg-gray-100 aspect-video md:aspect-auto md:h-64 flex items-center justify-center">
-                      <div className="text-center p-4">
-                        <svg className="w-16 h-16 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    <div className="relative group rounded-xl overflow-hidden border border-gray-200 bg-gray-100">
+                      <div className="relative w-full" style={{ minHeight: '300px' }}>
+                        <Image
+                          src={enrollment.paymentProofName}
+                          alt="Payment Proof"
+                          width={800}
+                          height={600}
+                          className="w-full h-auto object-contain"
+                          style={{ maxHeight: '500px' }}
+                          unoptimized
+                        />
+                      </div>
+                      <a
+                        href={enrollment.paymentProofName}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm hover:bg-white px-3 py-2 rounded-lg shadow-sm transition-colors flex items-center gap-2 text-sm font-medium"
+                        style={{ color: 'var(--color-brand-blue)' }}
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                         </svg>
-                        <p className="text-sm text-gray-600 font-medium">{enrollment.paymentProofName}</p>
-                      </div>
-                      <div className="absolute bottom-3 left-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded text-[10px] font-mono text-gray-600">
-                        {enrollment.paymentProofName}
-                      </div>
+                        View Full Size
+                      </a>
                     </div>
                   </div>
                 ) : (
