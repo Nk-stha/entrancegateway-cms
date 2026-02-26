@@ -53,7 +53,21 @@ async function proxyRequest(
     // Preserve query parameters from the original request
     const searchParams = request.nextUrl.searchParams.toString();
     const queryString = searchParams ? `?${searchParams}` : '';
-    const url = `${API_BASE_URL}/${path}${queryString}`;
+    
+    // Add /api/v1/ prefix only for quiz-related endpoints
+    const quizEndpoints = [
+      'categories',
+      'courses', 
+      'entrance-types',
+      'question-sets',
+      'mcq-questions',
+      'quiz-attempts',
+      'dashboard'
+    ];
+    
+    const needsV1Prefix = quizEndpoints.some(endpoint => path.startsWith(endpoint));
+    const apiPath = needsV1Prefix ? `/api/v1/${path}` : `/${path}`;
+    const url = `${API_BASE_URL}${apiPath}${queryString}`;
     
     const headers: Record<string, string> = {};
     
