@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/Textarea';
 import { Select } from '@/components/ui/Select';
 import { MathRenderer } from '@/components/ui/MathRenderer';
 import { MathPreview } from '@/components/ui/MathPreview';
+import { MathToolbar } from '@/components/ui/MathToolbar';
 import { useQuestions } from '@/hooks/useQuestions';
 import { useCategories } from '@/hooks/useCategories';
 import { questionService } from '@/services/question.service';
@@ -32,6 +33,9 @@ export default function QuestionsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null);
+  const [editorMode, setEditorMode] = useState<'normal' | 'math'>('normal');
+  const questionTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const optionTextareaRefs = useRef<(HTMLTextAreaElement | null)[]>([null, null, null, null]);
   const [formData, setFormData] = useState<QuestionFormData>({
     question: '',
     marks: 1,
@@ -55,6 +59,17 @@ export default function QuestionsPage() {
   ]);
   const [submitting, setSubmitting] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  const questionTextareaRefCallback = useCallback((el: HTMLTextAreaElement | null) => {
+    questionTextareaRef.current = el;
+  }, []);
+
+  const optionTextareaRefCallback = useCallback(
+    (index: number) => (el: HTMLTextAreaElement | null) => {
+      optionTextareaRefs.current[index] = el;
+    },
+    []
+  );
 
   useEffect(() => {
     const loadQuestionSet = async () => {
@@ -83,6 +98,7 @@ export default function QuestionsPage() {
     setQuestionImagePreview(null);
     setOptionImages([null, null, null, null]);
     setOptionImagePreviews([null, null, null, null]);
+    setEditorMode('normal');
     setShowCreateModal(true);
   };
 
@@ -175,6 +191,45 @@ export default function QuestionsPage() {
   const getOptionLabel = (index: number): string => {
     return String.fromCharCode(65 + index);
   };
+
+  const handleMathInsert = useCallback((latex: string, targetRef: HTMLTextAreaElement | null) => {
+    if (!targetRef) return;
+
+    const start = targetRef.selectionStart;
+    const end = targetRef.selectionEnd;
+    const currentValue = targetRef.value;
+
+    const newValue = currentValue.slice(0, start) + latex + currentValue.slice(end);
+    const newCursorPos = start + latex.length;
+
+    targetRef.value = newValue;
+    targetRef.focus();
+    targetRef.setSelectionRange(newCursorPos, newCursorPos);
+
+    const changeEvent = new Event('change', { bubbles: true });
+    targetRef.dispatchEvent(changeEvent);
+
+    if (targetRef === questionTextareaRef.current) {
+      setFormData((prev) => ({ ...prev, question: newValue }));
+    } else {
+      const optionIndex = optionTextareaRefs.current.findIndex((ref) => ref === targetRef);
+      if (optionIndex !== -1) {
+        setFormData((prev) => {
+          const newOptions = [...prev.options];
+          newOptions[optionIndex].optionText = newValue;
+          return { ...prev, options: newOptions };
+        });
+      }
+    }
+  }, []);
+
+  const handleQuestionMathInsert = useCallback((latex: string) => {
+    handleMathInsert(latex, questionTextareaRef.current);
+  }, [handleMathInsert]);
+
+  const handleOptionMathInsert = useCallback((index: number, latex: string) => {
+    handleMathInsert(latex, optionTextareaRefs.current[index]);
+  }, [handleMathInsert]);
 
   if (loading) {
     return (
@@ -357,18 +412,58 @@ export default function QuestionsPage() {
           size="xl"
         >
           <form onSubmit={handleSubmitCreate} className="space-y-6">
+            <div className="flex gap-2 border-b border-gray-200 mb-4">
+              <button
+                type="button"
+                onClick={() => setEditorMode('normal')}
+                className={`px-4 py-2 text-sm font-semibold border-b-2 transition-colors ${
+                  editorMode === 'normal'
+                    ? 'border-blue-600 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Normal Editor
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditorMode('math')}
+                className={`px-4 py-2 text-sm font-semibold border-b-2 transition-colors ${
+                  editorMode === 'math'
+                    ? 'border-blue-600 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Math Editor
+              </button>
+            </div>
+
+            {editorMode === 'math' && (
+              <div className="mb-4">
+                <MathToolbar onInsert={handleQuestionMathInsert} />
+              </div>
+            )}
+
             <div>
               <Textarea
                 label="Question Text"
                 value={formData.question}
-                onChange={(e) => setFormData({ ...formData, question: e.target.value })}
+                onChange={(e) => {
+                  setFormData({ ...formData, question: e.target.value });
+                }}
+                ref={questionTextareaRefCallback}
                 required
-                placeholder="Enter the question text. Use $...$ for inline math, $$...$$ for block math"
+                placeholder={
+                  editorMode === 'math'
+                    ? 'Enter the question text. Click symbols above to insert math'
+                    : 'Enter the question text. Use $...$ for inline math, $$...$$ for block math'
+                }
                 rows={4}
               />
-              <p className="text-xs text-gray-500 mt-1 mb-2">
-                Tip: Use $x^2$ for inline math or $$\int_0^1 x^2 dx$$ for block math
-              </p>
+              {editorMode === 'normal' && (
+                <p className="text-xs text-gray-500 mt-1 mb-2">
+                  Tip: Use $x^2$ for inline math or $$\int_0^1 x^2 dx$$ for block math
+                </p>
+              )}
               <MathPreview text={formData.question} />
             </div>
 
@@ -451,13 +546,26 @@ export default function QuestionsPage() {
                       </label>
                     </div>
 
+                    {editorMode === 'math' && (
+                      <div className="mb-3">
+                        <MathToolbar onInsert={(latex) => handleOptionMathInsert(index, latex)} />
+                      </div>
+                    )}
+
                     <div>
                       <Textarea
                         label={`Option ${getOptionLabel(index)} Text`}
                         value={option.optionText}
-                        onChange={(e) => handleOptionChange(index, 'optionText', e.target.value)}
+                        onChange={(e) => {
+                          handleOptionChange(index, 'optionText', e.target.value);
+                        }}
+                        ref={optionTextareaRefCallback(index)}
                         required
-                        placeholder={`Enter option ${getOptionLabel(index)}. Use $...$ for math`}
+                        placeholder={
+                          editorMode === 'math'
+                            ? `Enter option ${getOptionLabel(index)}. Click symbols above to insert math`
+                            : `Enter option ${getOptionLabel(index)}. Use $...$ for math`
+                        }
                         rows={2}
                       />
                       <MathPreview text={option.optionText} />
