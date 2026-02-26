@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ProtectedRoute } from '@/components/providers/ProtectedRoute';
@@ -12,6 +12,8 @@ import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Select } from '@/components/ui/Select';
+import { MathRenderer } from '@/components/ui/MathRenderer';
+import { MathPreview } from '@/components/ui/MathPreview';
 import { useQuestions } from '@/hooks/useQuestions';
 import { useCategories } from '@/hooks/useCategories';
 import { questionService } from '@/services/question.service';
@@ -20,7 +22,6 @@ import { toast } from '@/lib/utils/toast';
 import type { Question, QuestionFormData } from '@/types/quiz.types';
 
 export default function QuestionsPage() {
-  const router = useRouter();
   const params = useParams();
   const questionSetId = parseInt(params.id as string);
 
@@ -280,7 +281,9 @@ export default function QuestionsPage() {
                   </div>
 
                   <div className="mb-4">
-                    <p className="text-gray-900 whitespace-pre-wrap">{question.question}</p>
+                    <div className="text-gray-900 whitespace-pre-wrap">
+                      <MathRenderer text={question.question} />
+                    </div>
                     {question.questionImageName && (
                       <div className="mt-3 relative w-full max-w-md">
                         <Image
@@ -316,7 +319,9 @@ export default function QuestionsPage() {
                             {getOptionLabel(option.optionOrder)}
                           </span>
                           <div className="flex-1">
-                            <p className="text-gray-900">{option.optionText}</p>
+                            <div className="text-gray-900">
+                              <MathRenderer text={option.optionText} />
+                            </div>
                             {option.optionImageName && (
                               <div className="mt-2 relative w-full max-w-xs">
                                 <Image
@@ -352,14 +357,20 @@ export default function QuestionsPage() {
           size="xl"
         >
           <form onSubmit={handleSubmitCreate} className="space-y-6">
-            <Textarea
-              label="Question Text"
-              value={formData.question}
-              onChange={(e) => setFormData({ ...formData, question: e.target.value })}
-              required
-              placeholder="Enter the question text"
-              rows={4}
-            />
+            <div>
+              <Textarea
+                label="Question Text"
+                value={formData.question}
+                onChange={(e) => setFormData({ ...formData, question: e.target.value })}
+                required
+                placeholder="Enter the question text. Use $...$ for inline math, $$...$$ for block math"
+                rows={4}
+              />
+              <p className="text-xs text-gray-500 mt-1 mb-2">
+                Tip: Use $x^2$ for inline math or $$\int_0^1 x^2 dx$$ for block math
+              </p>
+              <MathPreview text={formData.question} />
+            </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -440,14 +451,17 @@ export default function QuestionsPage() {
                       </label>
                     </div>
 
-                    <Textarea
-                      label={`Option ${getOptionLabel(index)} Text`}
-                      value={option.optionText}
-                      onChange={(e) => handleOptionChange(index, 'optionText', e.target.value)}
-                      required
-                      placeholder={`Enter option ${getOptionLabel(index)}`}
-                      rows={2}
-                    />
+                    <div>
+                      <Textarea
+                        label={`Option ${getOptionLabel(index)} Text`}
+                        value={option.optionText}
+                        onChange={(e) => handleOptionChange(index, 'optionText', e.target.value)}
+                        required
+                        placeholder={`Enter option ${getOptionLabel(index)}. Use $...$ for math`}
+                        rows={2}
+                      />
+                      <MathPreview text={option.optionText} />
+                    </div>
 
                     <div className="mt-3">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
