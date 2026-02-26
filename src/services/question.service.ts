@@ -6,11 +6,11 @@ import type {
 import type { ApiError } from '@/types/api.types';
 
 class QuestionService {
-    private readonly endpoint = '/mcq-questions';
+    private readonly endpoint = '/questions';
 
     async getQuestionsBySet(questionSetId: number): Promise<QuestionApiResponse[]> {
         try {
-            const response = await apiClient.get<QuestionApiResponse[]>(
+            const response = await apiClient.get<Record<string, QuestionApiResponse[]>>(
                 `${this.endpoint}/set/${questionSetId}`
             );
 
@@ -18,7 +18,13 @@ class QuestionService {
                 return [];
             }
 
-            return response.data;
+            // Flatten the grouped response into a single array
+            const allQuestions: QuestionApiResponse[] = [];
+            Object.values(response.data).forEach(categoryQuestions => {
+                allQuestions.push(...categoryQuestions);
+            });
+
+            return allQuestions;
         } catch {
             return [];
         }

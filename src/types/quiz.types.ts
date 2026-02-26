@@ -136,17 +136,17 @@ export interface QuestionSetFormData {
 export interface OptionApiResponse {
     optionId: number;
     optionText: string;
+    optionImageUrl: string | null;
     optionOrder: number;
     correct: boolean;
-    optionImageName: string | null;
 }
 
 export interface Option {
     id: number;
     optionText: string;
+    optionImageName: string | null;
     optionOrder: number;
     correct: boolean;
-    optionImageName: string | null;
 }
 
 export interface OptionFormData {
@@ -159,11 +159,11 @@ export interface QuestionApiResponse {
     questionId: number;
     question: string;
     marks: number;
-    questionImageName: string | null;
-    category: {
-        categoryId: number;
-        categoryName: string;
-    };
+    categoryId: number;
+    categoryName: string;
+    questionSetId: number;
+    questionSetTitle: string;
+    mcqImage: string | null;
     options: OptionApiResponse[];
 }
 

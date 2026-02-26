@@ -60,7 +60,7 @@ async function proxyRequest(
       'courses', 
       'entrance-types',
       'question-sets',
-      'mcq-questions',
+      'questions',
       'quiz-attempts',
       'dashboard'
     ];

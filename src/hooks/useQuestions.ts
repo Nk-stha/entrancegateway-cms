@@ -19,17 +19,17 @@ export function useQuestions(questionSetId: number) {
                 id: q.questionId,
                 question: q.question,
                 marks: q.marks,
-                questionImageName: q.questionImageName,
+                questionImageName: q.mcqImage,
                 category: {
-                    id: q.category.categoryId,
-                    categoryName: q.category.categoryName,
+                    id: q.categoryId,
+                    categoryName: q.categoryName,
                 },
                 options: q.options.map(opt => ({
                     id: opt.optionId,
                     optionText: opt.optionText,
                     optionOrder: opt.optionOrder,
                     correct: opt.correct,
-                    optionImageName: opt.optionImageName,
+                    optionImageName: opt.optionImageUrl,
                 })),
             }));
             
