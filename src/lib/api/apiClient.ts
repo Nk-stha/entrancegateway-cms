@@ -209,6 +209,55 @@ class ApiClient {
     }
   }
 
+  // Special method for downloading files (CSV, PDF, etc.)
+  async download(endpoint: string, timeout: number = this.defaultTimeout): Promise<Blob> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+    try {
+      const url = `${this.baseURL}${endpoint}`;
+      
+      const headers: Record<string, string> = {};
+
+      const token = this.getAccessToken();
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers,
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw {
+          message: data.message || 'Download failed',
+          errors: data.errors,
+          status: response.status,
+        } as ApiError;
+      }
+
+      return await response.blob();
+    } catch (error) {
+      clearTimeout(timeoutId);
+
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          throw {
+            message: 'Request timeout',
+            status: 408,
+          } as ApiError;
+        }
+      }
+
+      throw error;
+    }
+  }
+
   private getAccessToken(): string | null {
     if (typeof window === 'undefined') return null;
     return localStorage.getItem('accessToken');
