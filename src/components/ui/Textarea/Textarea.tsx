@@ -2,8 +2,22 @@ import { forwardRef } from 'react';
 import type { TextareaProps } from './Textarea.types';
 
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
-  function Textarea({ label, error, helperText, className = '', id, ...props }, ref) {
-    const textareaId = id || `textarea-${label?.toLowerCase().replace(/\s+/g, '-')}`;
+  function Textarea({ label, error, helperText, className = '', id, onFocus, onBlur, ...props }, ref) {
+    const textareaId = id || (label ? `textarea-${label.toLowerCase().replace(/\s+/g, '-')}` : `textarea-${Math.random().toString(36).substr(2, 9)}`);
+
+    const handleFocus = (e: React.FocusEvent<HTMLTextAreaElement>) => {
+      if (!error) {
+        e.target.style.borderColor = 'var(--color-brand-blue)';
+      }
+      onFocus?.(e);
+    };
+
+    const handleBlur = (e: React.FocusEvent<HTMLTextAreaElement>) => {
+      if (!error) {
+        e.target.style.borderColor = 'var(--color-gray-300)';
+      }
+      onBlur?.(e);
+    };
 
     return (
       <div className="w-full">
@@ -30,16 +44,8 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           style={{
             borderColor: error ? 'var(--color-error)' : 'var(--color-gray-300)',
           }}
-          onFocus={(e) => {
-            if (!error) {
-              e.target.style.borderColor = 'var(--color-brand-blue)';
-            }
-          }}
-          onBlur={(e) => {
-            if (!error) {
-              e.target.style.borderColor = 'var(--color-gray-300)';
-            }
-          }}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
           {...props}
         />
 
