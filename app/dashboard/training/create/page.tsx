@@ -131,14 +131,10 @@ export default function CreateTrainingPage() {
                   required
                 />
               </div>
-              <Select
+              <Input
                 label="Training Category"
-                options={[
-                  { value: 'data-science', label: 'Data Science' },
-                  { value: 'web-development', label: 'Web Development' },
-                  { value: 'ui-ux', label: 'UI/UX Design' },
-                  { value: 'digital-marketing', label: 'Digital Marketing' },
-                ]}
+                type="text"
+                placeholder="e.g., Data Science, Web Development, UI/UX Design"
                 value={formData.category}
                 onChange={(e) => handleChange('category', e.target.value)}
               />
@@ -190,13 +186,10 @@ export default function CreateTrainingPage() {
                 onChange={(e) => handleChange('endDate', e.target.value)}
                 error={errors.endDate}
               />
-              <Select
+              <Input
                 label="Training Type"
-                options={[
-                  { value: 'hybrid', label: 'Hybrid' },
-                  { value: 'online', label: 'Online' },
-                  { value: 'onsite', label: 'On-site' },
-                ]}
+                type="text"
+                placeholder="e.g., Hybrid, Online, On-site"
                 value={formData.type}
                 onChange={(e) => handleChange('type', e.target.value as 'online' | 'onsite' | 'hybrid')}
               />
