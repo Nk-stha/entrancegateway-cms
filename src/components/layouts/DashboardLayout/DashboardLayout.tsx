@@ -10,6 +10,7 @@ import type { DashboardLayoutProps, NavItem, UserProfile } from './DashboardLayo
 
 const navItems: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: 'dashboard' },
+  { label: 'Users', href: '/dashboard/users', icon: 'people' },
   { label: 'Students', href: '/dashboard/students', icon: 'group' },
   { label: 'Colleges', href: '/dashboard/colleges', icon: 'account_balance' },
   { label: 'Courses', href: '/dashboard/courses', icon: 'book' },
