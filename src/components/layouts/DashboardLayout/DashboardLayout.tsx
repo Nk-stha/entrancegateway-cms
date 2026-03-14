@@ -11,7 +11,6 @@ import type { DashboardLayoutProps, NavItem, UserProfile } from './DashboardLayo
 const navItems: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: 'dashboard' },
   { label: 'Users', href: '/dashboard/users', icon: 'people' },
-  { label: 'Students', href: '/dashboard/students', icon: 'group' },
   { label: 'Colleges', href: '/dashboard/colleges', icon: 'account_balance' },
   { label: 'Courses', href: '/dashboard/courses', icon: 'book' },
   { label: 'Categories', href: '/dashboard/categories', icon: 'category' },
@@ -19,6 +18,7 @@ const navItems: NavItem[] = [
   { label: 'Question Sets', href: '/dashboard/question-sets', icon: 'quiz' },
   { label: 'Quiz Analytics', href: '/dashboard/analytics', icon: 'analytics' },
   { label: 'Quiz Attempts', href: '/dashboard/quiz-attempts', icon: 'assignment_turned_in' },
+  { label: 'Quiz Purchases', href: '/dashboard/quiz-purchases', icon: 'shopping_cart' },
   { label: 'Training', href: '/dashboard/training', icon: 'model_training' },
   { label: 'Enrollments', href: '/dashboard/enrollments', icon: 'assignment' },
   { label: 'Blog', href: '/dashboard/blog', icon: 'rss_feed' },

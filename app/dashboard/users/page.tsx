@@ -324,7 +324,9 @@ export default function UsersPage() {
             ) : (
               <>
                 <div className="text-sm text-gray-500">
-                  Showing <span className="font-bold" style={{ color: 'var(--color-brand-navy)' }}>{pagination.pageSize}</span> of{' '}
+                  Showing <span className="font-bold" style={{ color: 'var(--color-brand-navy)' }}>
+                    {Math.min(pagination.pageSize, users.length)}
+                  </span> of{' '}
                   <span className="font-bold" style={{ color: 'var(--color-brand-navy)' }}>{pagination.totalElements}</span> users
                 </div>
                 <div className="flex items-center gap-4">

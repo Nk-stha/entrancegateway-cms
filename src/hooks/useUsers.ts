@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { userService } from '@/services/user.service';
 import type { User, UserQueryParams } from '@/types/user.types';
 
@@ -35,13 +35,20 @@ export function useUsers(initialParams: UserQueryParams = {}): UseUsersResult {
     pageSize: 10,
     isLast: true,
   });
+  
+  const requestIdRef = useRef(0);
 
   const fetchUsers = useCallback(async () => {
+    const currentRequestId = ++requestIdRef.current;
     setLoading(true);
     setError(null);
 
     try {
       const result = await userService.getUsers(params);
+
+      if (currentRequestId !== requestIdRef.current) {
+        return;
+      }
 
       setUsers(result.users);
       setPagination({
@@ -52,6 +59,10 @@ export function useUsers(initialParams: UserQueryParams = {}): UseUsersResult {
         isLast: result.isLast,
       });
     } catch (error) {
+      if (currentRequestId !== requestIdRef.current) {
+        return;
+      }
+      
       console.error('Unexpected error fetching users:', error);
       setError('Failed to load users. Please try again.');
       setUsers([]);
@@ -63,7 +74,9 @@ export function useUsers(initialParams: UserQueryParams = {}): UseUsersResult {
         isLast: true,
       });
     } finally {
-      setLoading(false);
+      if (currentRequestId === requestIdRef.current) {
+        setLoading(false);
+      }
     }
   }, [params]);
 
