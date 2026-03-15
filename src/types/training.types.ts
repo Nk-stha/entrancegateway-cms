@@ -55,7 +55,7 @@ export interface TrainingApiResponse {
   syllabusDescription: string;
   startDate: string;
   endDate: string;
-  trainingType: 'REMOTE' | 'ONSITE' | 'HYBRID';
+  trainingType: 'REMOTE' | 'ON_SITE' | 'HYBRID';
   trainingStatus: 'REGISTRATION_OPEN' | 'UPCOMING' | 'CLOSED';
   trainingHours: number;
   location: string;
@@ -75,7 +75,7 @@ export interface TrainingCreateRequest {
   syllabusDescription: string;
   startDate: string;
   endDate: string;
-  trainingType: 'REMOTE' | 'ONSITE' | 'HYBRID';
+  trainingType: 'REMOTE' | 'ON_SITE' | 'HYBRID';
   trainingStatus: 'REGISTRATION_OPEN' | 'UPCOMING' | 'CLOSED';
   trainingHours: number;
   location: string;

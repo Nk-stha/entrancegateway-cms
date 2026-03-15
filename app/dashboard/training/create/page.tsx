@@ -186,13 +186,20 @@ export default function CreateTrainingPage() {
                 onChange={(e) => handleChange('endDate', e.target.value)}
                 error={errors.endDate}
               />
-              <Input
-                label="Training Type"
-                type="text"
-                placeholder="e.g., Hybrid, Online, On-site"
-                value={formData.type}
-                onChange={(e) => handleChange('type', e.target.value as 'online' | 'onsite' | 'hybrid')}
-              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Training Type
+                </label>
+                <select
+                  value={formData.type}
+                  onChange={(e) => handleChange('type', e.target.value as 'online' | 'onsite' | 'hybrid')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                >
+                  <option value="online">Online</option>
+                  <option value="onsite">On-site</option>
+                  <option value="hybrid">Hybrid</option>
+                </select>
+              </div>
               <Input
                 label="Training Hours"
                 type="number"

@@ -147,9 +147,9 @@ class TrainingService {
   // Transform form data to API request format
   private transformFormToApi(formData: TrainingFormData): TrainingCreateRequest {
     // Map UI type to API type
-    const typeMap: Record<string, 'REMOTE' | 'ONSITE' | 'HYBRID'> = {
+    const typeMap: Record<string, 'REMOTE' | 'ON_SITE' | 'HYBRID'> = {
       'online': 'REMOTE',
-      'onsite': 'ONSITE',
+      'onsite': 'ON_SITE',
       'hybrid': 'HYBRID',
     };
 
