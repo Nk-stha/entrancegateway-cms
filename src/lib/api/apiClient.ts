@@ -1,5 +1,23 @@
 import type { ApiResponse, ApiError } from '@/types/api.types';
 
+let isRefreshing = false;
+let refreshPromise: Promise<void> | null = null;
+let failedQueue: Array<{
+  resolve: (value?: unknown) => void;
+  reject: (reason?: unknown) => void;
+}> = [];
+
+const processQueue = (error: ApiError | null = null) => {
+  failedQueue.forEach(promise => {
+    if (error) {
+      promise.reject(error);
+    } else {
+      promise.resolve();
+    }
+  });
+  failedQueue = [];
+};
+
 class ApiClient {
   private baseURL: string;
   private defaultTimeout: number;
@@ -9,10 +27,68 @@ class ApiClient {
     this.defaultTimeout = timeout;
   }
 
+  private async refreshAccessToken(): Promise<void> {
+    if (typeof window === 'undefined') {
+      throw { message: 'Cannot refresh token on server', status: 401 } as ApiError;
+    }
+
+    const refreshToken = localStorage.getItem('refreshToken');
+    if (!refreshToken) {
+      throw { message: 'No refresh token available', status: 401 } as ApiError;
+    }
+
+    try {
+      const response = await fetch(`${this.baseURL}/auth/refresh-token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ refreshToken }),
+      });
+
+      if (!response.ok) {
+        throw { message: 'Token refresh failed', status: response.status } as ApiError;
+      }
+
+      const data = await response.json();
+      
+      if (data.data?.accessToken) {
+        localStorage.setItem('accessToken', data.data.accessToken);
+        const isProduction = process.env.NODE_ENV === 'production';
+        const secureFlag = isProduction ? '; Secure' : '';
+        document.cookie = `accessToken=${data.data.accessToken}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax${secureFlag}`;
+        
+        if (data.data.userId && data.data.expiresIn) {
+          localStorage.setItem('userData', JSON.stringify({
+            userId: data.data.userId,
+            expiresAt: Date.now() + (data.data.expiresIn * 1000),
+          }));
+        }
+      } else {
+        throw { message: 'Invalid refresh response', status: 401 } as ApiError;
+      }
+    } catch (error) {
+      this.clearTokens();
+      throw error;
+    }
+  }
+
+  private clearTokens(): void {
+    if (typeof window === 'undefined') return;
+    
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('userData');
+    
+    document.cookie = 'accessToken=; path=/; max-age=0';
+    document.cookie = 'refreshToken=; path=/; max-age=0';
+  }
+
   private async request<T>(
     endpoint: string,
     options: RequestInit = {},
-    timeout: number = this.defaultTimeout
+    timeout: number = this.defaultTimeout,
+    isRetry: boolean = false
   ): Promise<ApiResponse<T>> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
@@ -24,7 +100,6 @@ class ApiClient {
         'Content-Type': 'application/json',
       };
 
-      // Copy existing headers from options
       if (options.headers) {
         const existingHeaders = new Headers(options.headers);
         existingHeaders.forEach((value, key) => {
@@ -32,11 +107,10 @@ class ApiClient {
         });
       }
 
-      // Only add Authorization header if token exists AND endpoint is not login
       const token = this.getAccessToken();
-      const isLoginEndpoint = endpoint === '/auth/login' || endpoint === '/auth/refresh-token';
+      const isAuthEndpoint = endpoint === '/auth/login' || endpoint === '/auth/refresh-token';
       
-      if (token && !isLoginEndpoint) {
+      if (token && !isAuthEndpoint) {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
@@ -51,6 +125,36 @@ class ApiClient {
       const data = await response.json();
 
       if (!response.ok) {
+        if (response.status === 401 && !isAuthEndpoint && !isRetry) {
+          if (isRefreshing) {
+            return new Promise((resolve, reject) => {
+              failedQueue.push({ resolve, reject });
+            }).then(() => {
+              return this.request<T>(endpoint, options, timeout, true);
+            });
+          }
+
+          isRefreshing = true;
+          refreshPromise = this.refreshAccessToken()
+            .then(() => {
+              processQueue(null);
+            })
+            .catch((error) => {
+              processQueue(error);
+              if (typeof window !== 'undefined') {
+                window.location.href = '/login';
+              }
+              throw error;
+            })
+            .finally(() => {
+              isRefreshing = false;
+              refreshPromise = null;
+            });
+
+          await refreshPromise;
+          return this.request<T>(endpoint, options, timeout, true);
+        }
+
         throw {
           message: data.message || 'Request failed',
           errors: data.errors,
@@ -107,8 +211,7 @@ class ApiClient {
     });
   }
 
-  // Special method for multipart/form-data uploads
-  async postMultipart<T>(endpoint: string, formData: FormData, timeout: number = this.defaultTimeout): Promise<ApiResponse<T>> {
+  async postMultipart<T>(endpoint: string, formData: FormData, timeout: number = this.defaultTimeout, isRetry: boolean = false): Promise<ApiResponse<T>> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
@@ -134,6 +237,30 @@ class ApiClient {
       const data = await response.json();
 
       if (!response.ok) {
+        if (response.status === 401 && !isRetry) {
+          if (isRefreshing) {
+            await new Promise((resolve, reject) => {
+              failedQueue.push({ resolve, reject });
+            });
+            return this.postMultipart<T>(endpoint, formData, timeout, true);
+          }
+
+          isRefreshing = true;
+          try {
+            await this.refreshAccessToken();
+            processQueue(null);
+            return this.postMultipart<T>(endpoint, formData, timeout, true);
+          } catch (error) {
+            processQueue(error as ApiError);
+            if (typeof window !== 'undefined') {
+              window.location.href = '/login';
+            }
+            throw error;
+          } finally {
+            isRefreshing = false;
+          }
+        }
+
         throw {
           message: data.message || 'Request failed',
           errors: data.errors || data.fieldErrors,
@@ -158,8 +285,7 @@ class ApiClient {
     }
   }
 
-  // Special method for multipart/form-data updates
-  async putMultipart<T>(endpoint: string, formData: FormData, timeout: number = this.defaultTimeout): Promise<ApiResponse<T>> {
+  async putMultipart<T>(endpoint: string, formData: FormData, timeout: number = this.defaultTimeout, isRetry: boolean = false): Promise<ApiResponse<T>> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
@@ -185,6 +311,30 @@ class ApiClient {
       const data = await response.json();
 
       if (!response.ok) {
+        if (response.status === 401 && !isRetry) {
+          if (isRefreshing) {
+            await new Promise((resolve, reject) => {
+              failedQueue.push({ resolve, reject });
+            });
+            return this.putMultipart<T>(endpoint, formData, timeout, true);
+          }
+
+          isRefreshing = true;
+          try {
+            await this.refreshAccessToken();
+            processQueue(null);
+            return this.putMultipart<T>(endpoint, formData, timeout, true);
+          } catch (error) {
+            processQueue(error as ApiError);
+            if (typeof window !== 'undefined') {
+              window.location.href = '/login';
+            }
+            throw error;
+          } finally {
+            isRefreshing = false;
+          }
+        }
+
         throw {
           message: data.message || 'Request failed',
           errors: data.errors || data.fieldErrors,
@@ -209,8 +359,7 @@ class ApiClient {
     }
   }
 
-  // Special method for downloading files (CSV, PDF, etc.)
-  async download(endpoint: string, timeout: number = this.defaultTimeout): Promise<Blob> {
+  async download(endpoint: string, timeout: number = this.defaultTimeout, isRetry: boolean = false): Promise<Blob> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
@@ -233,6 +382,30 @@ class ApiClient {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
+        if (response.status === 401 && !isRetry) {
+          if (isRefreshing) {
+            await new Promise((resolve, reject) => {
+              failedQueue.push({ resolve, reject });
+            });
+            return this.download(endpoint, timeout, true);
+          }
+
+          isRefreshing = true;
+          try {
+            await this.refreshAccessToken();
+            processQueue(null);
+            return this.download(endpoint, timeout, true);
+          } catch (error) {
+            processQueue(error as ApiError);
+            if (typeof window !== 'undefined') {
+              window.location.href = '/login';
+            }
+            throw error;
+          } finally {
+            isRefreshing = false;
+          }
+        }
+
         const data = await response.json();
         throw {
           message: data.message || 'Download failed',

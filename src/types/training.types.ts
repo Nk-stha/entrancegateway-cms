@@ -14,6 +14,13 @@ export interface TrainingFormData {
   location: string;
   remarks: string;
   file?: File | null;
+  links: TrainingLink[];
+}
+
+export interface TrainingLink {
+  label: string;
+  url: string;
+  linkType: 'DISCORD' | 'ZOOM' | 'MATERIALS' | 'OTHER';
 }
 
 export interface TrainingFormErrors {
@@ -50,6 +57,7 @@ export interface Training {
 
 export interface TrainingApiResponse {
   trainingId: number;
+  slug: string;
   trainingName: string;
   description: string;
   syllabusDescription: string;
@@ -58,7 +66,7 @@ export interface TrainingApiResponse {
   trainingType: 'REMOTE' | 'ON_SITE' | 'HYBRID';
   trainingStatus: 'REGISTRATION_OPEN' | 'UPCOMING' | 'CLOSED';
   trainingHours: number;
-  location: string;
+  location: string | null;
   maxParticipants: number;
   currentParticipants: number;
   trainingCategory: string;
@@ -67,6 +75,20 @@ export interface TrainingApiResponse {
   materialsLink?: string;
   remarks?: string;
   offerPercentage?: number;
+  links?: TrainingLinkResponse[];
+}
+
+export interface TrainingLinkResponse {
+  linkId: number;
+  label: string;
+  url: string;
+  linkType: 'DISCORD' | 'ZOOM' | 'MATERIALS' | 'OTHER';
+}
+
+export interface TrainingLinkRequest {
+  label?: string;
+  url?: string;
+  linkType?: 'DISCORD' | 'ZOOM' | 'MATERIALS' | 'OTHER';
 }
 
 export interface TrainingCreateRequest {
@@ -78,7 +100,7 @@ export interface TrainingCreateRequest {
   trainingType: 'REMOTE' | 'ON_SITE' | 'HYBRID';
   trainingStatus: 'REGISTRATION_OPEN' | 'UPCOMING' | 'CLOSED';
   trainingHours: number;
-  location: string;
+  location: string | null;
   maxParticipants: number;
   currentParticipants: number;
   trainingCategory: string;
@@ -86,6 +108,7 @@ export interface TrainingCreateRequest {
   certificateProvided: boolean;
   remarks?: string;
   offerPercentage?: number;
+  links?: TrainingLinkRequest[];
 }
 
 export interface TrainingListResponse {

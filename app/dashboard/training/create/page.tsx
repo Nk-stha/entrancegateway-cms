@@ -186,20 +186,16 @@ export default function CreateTrainingPage() {
                 onChange={(e) => handleChange('endDate', e.target.value)}
                 error={errors.endDate}
               />
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Training Type
-                </label>
-                <select
-                  value={formData.type}
-                  onChange={(e) => handleChange('type', e.target.value as 'online' | 'onsite' | 'hybrid')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-blue"
-                >
-                  <option value="online">Online</option>
-                  <option value="onsite">On-site</option>
-                  <option value="hybrid">Hybrid</option>
-                </select>
-              </div>
+              <Select
+                label="Training Type"
+                value={formData.type}
+                onChange={(e) => handleChange('type', e.target.value as 'online' | 'onsite' | 'hybrid')}
+                options={[
+                  { value: 'online', label: 'Online' },
+                  { value: 'onsite', label: 'On-site' },
+                  { value: 'hybrid', label: 'Hybrid' },
+                ]}
+              />
               <Input
                 label="Training Hours"
                 type="number"
@@ -291,6 +287,103 @@ export default function CreateTrainingPage() {
                   value={formData.remarks}
                   onChange={(e) => handleChange('remarks', e.target.value)}
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Training Links (Optional)
+                </label>
+                <p className="text-xs text-gray-500 mb-3">
+                  Add Discord, Zoom, or other relevant links for participants
+                </p>
+                <div className="space-y-3">
+                  {(formData.links || []).map((link, index) => (
+                    <div key={index} className="flex gap-2">
+                      <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-2">
+                        <div>
+                          <label htmlFor={`create-link-label-${index}`} className="sr-only">
+                            Link Label {index + 1}
+                          </label>
+                          <input
+                            id={`create-link-label-${index}`}
+                            type="text"
+                            placeholder="Label (e.g., Discord Server)"
+                            value={link.label || ''}
+                            onChange={(e) => {
+                              const newLinks = (formData.links || []).map((l, i) =>
+                                i === index ? { ...l, label: e.target.value } : l
+                              );
+                              handleChange('links', newLinks);
+                            }}
+                            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-blue text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor={`create-link-url-${index}`} className="sr-only">
+                            Link URL {index + 1}
+                          </label>
+                          <input
+                            id={`create-link-url-${index}`}
+                            type="text"
+                            placeholder="URL"
+                            value={link.url || ''}
+                            onChange={(e) => {
+                              const newLinks = (formData.links || []).map((l, i) =>
+                                i === index ? { ...l, url: e.target.value } : l
+                              );
+                              handleChange('links', newLinks);
+                            }}
+                            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-blue text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor={`create-link-type-${index}`} className="sr-only">
+                            Link Type {index + 1}
+                          </label>
+                          <select
+                            id={`create-link-type-${index}`}
+                            value={link.linkType || 'OTHER'}
+                            onChange={(e) => {
+                              const newLinks = (formData.links || []).map((l, i) =>
+                                i === index ? { ...l, linkType: e.target.value as 'DISCORD' | 'ZOOM' | 'MATERIALS' | 'OTHER' } : l
+                              );
+                              handleChange('links', newLinks);
+                            }}
+                            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-blue text-sm"
+                          >
+                            <option value="DISCORD">Discord</option>
+                            <option value="ZOOM">Zoom</option>
+                            <option value="MATERIALS">Materials</option>
+                            <option value="OTHER">Other</option>
+                          </select>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newLinks = (formData.links || []).filter((_, i) => i !== index);
+                          handleChange('links', newLinks);
+                        }}
+                        aria-label={`Remove link ${index + 1}`}
+                        className="px-3 py-2 text-sm font-medium rounded-lg transition-colors"
+                        style={{
+                          color: 'var(--color-error)',
+                          backgroundColor: 'rgba(211, 47, 47, 0.1)',
+                        }}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleChange('links', [...(formData.links || []), { label: '', url: '', linkType: 'OTHER' }]);
+                    }}
+                    className="px-4 py-2 text-sm font-medium border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    + Add Link
+                  </button>
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">

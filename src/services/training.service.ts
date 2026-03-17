@@ -5,7 +5,8 @@ import type {
   TrainingApiResponse,
   Training,
   TrainingCreateRequest,
-  TrainingFormData
+  TrainingFormData,
+  TrainingLinkRequest
 } from '@/types/training.types';
 import type { ApiError } from '@/types/api.types';
 
@@ -153,6 +154,15 @@ class TrainingService {
       'hybrid': 'HYBRID',
     };
 
+    // Transform links to API format
+    const links: TrainingLinkRequest[] = formData.links
+      .filter(link => link.url && link.url.trim())
+      .map(link => ({
+        label: link.label || undefined,
+        url: link.url,
+        linkType: link.linkType,
+      }));
+
     return {
       trainingName: formData.name,
       description: formData.description,
@@ -162,7 +172,7 @@ class TrainingService {
       trainingType: typeMap[formData.type] || 'HYBRID',
       trainingStatus: 'UPCOMING',
       trainingHours: formData.hours,
-      location: formData.location,
+      location: formData.location || null,
       maxParticipants: formData.maxParticipants,
       currentParticipants: 0,
       trainingCategory: formData.category,
@@ -170,6 +180,7 @@ class TrainingService {
       certificateProvided: formData.certificateProvided,
       remarks: formData.remarks || undefined,
       offerPercentage: formData.offerPercentage || undefined,
+      links: links.length > 0 ? links : undefined,
     };
   }
 
@@ -210,24 +221,37 @@ class TrainingService {
       const apiError = error as ApiError;
       console.error('Failed to create training:', apiError);
 
-      if (apiError.status === 400 && apiError.errors) {
+      if (apiError.status === 400) {
+        if (apiError.errors) {
+          return {
+            success: false,
+            error: 'Validation failed. Please check the form.',
+            fieldErrors: apiError.errors as Record<string, string>,
+          };
+        }
         return {
           success: false,
-          error: apiError.message || 'Validation failed',
-          fieldErrors: apiError.errors as Record<string, string>,
+          error: apiError.message || 'Invalid training data',
         };
       }
 
       if (apiError.status === 409) {
         return {
           success: false,
-          error: apiError.message || 'Training already exists',
+          error: apiError.message || 'Training with this name already exists',
+        };
+      }
+
+      if (apiError.status === 403) {
+        return {
+          success: false,
+          error: 'You do not have permission to create trainings',
         };
       }
 
       return {
         success: false,
-        error: apiError.message || 'Failed to create training',
+        error: apiError.message || 'Failed to create training. Please try again.',
       };
     }
   }
@@ -278,21 +302,41 @@ class TrainingService {
       if (apiError.status === 404) {
         return {
           success: false,
-          error: apiError.message || 'Training not found',
+          error: 'Training not found',
         };
       }
 
-      if (apiError.status === 400 && apiError.errors) {
+      if (apiError.status === 400) {
+        if (apiError.errors) {
+          return {
+            success: false,
+            error: 'Validation failed. Please check the form.',
+            fieldErrors: apiError.errors as Record<string, string>,
+          };
+        }
         return {
           success: false,
-          error: apiError.message || 'Validation failed',
-          fieldErrors: apiError.errors as Record<string, string>,
+          error: apiError.message || 'Invalid training data',
+        };
+      }
+
+      if (apiError.status === 409) {
+        return {
+          success: false,
+          error: apiError.message || 'Training with this name already exists',
+        };
+      }
+
+      if (apiError.status === 403) {
+        return {
+          success: false,
+          error: 'You do not have permission to update this training',
         };
       }
 
       return {
         success: false,
-        error: apiError.message || 'Failed to update training',
+        error: apiError.message || 'Failed to update training. Please try again.',
       };
     }
   }

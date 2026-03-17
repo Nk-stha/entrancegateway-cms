@@ -17,6 +17,7 @@ const initialFormData: TrainingFormData = {
   location: '',
   remarks: '',
   file: null,
+  links: [],
 };
 
 export function useTrainingForm() {

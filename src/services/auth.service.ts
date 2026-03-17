@@ -38,6 +38,11 @@ class AuthService {
       if (response.data) {
         this.setAccessToken(response.data.accessToken);
         
+        // Update refresh token if a new one is provided
+        if (response.data.refreshToken) {
+          this.setRefreshToken(response.data.refreshToken);
+        }
+        
         this.setUserData({
           userId: response.data.userId,
           expiresAt: Date.now() + (response.data.expiresIn * 1000),
@@ -84,7 +89,9 @@ class AuthService {
     
     localStorage.setItem('accessToken', token);
     
-    document.cookie = `accessToken=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+    const isProduction = process.env.NODE_ENV === 'production';
+    const secureFlag = isProduction ? '; Secure' : '';
+    document.cookie = `accessToken=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax${secureFlag}`;
   }
 
   private setRefreshToken(token: string): void {
@@ -92,7 +99,9 @@ class AuthService {
     
     localStorage.setItem('refreshToken', token);
     
-    document.cookie = `refreshToken=${token}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax`;
+    const isProduction = process.env.NODE_ENV === 'production';
+    const secureFlag = isProduction ? '; Secure' : '';
+    document.cookie = `refreshToken=${token}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax${secureFlag}`;
   }
 
   getAccessToken(): string | null {
