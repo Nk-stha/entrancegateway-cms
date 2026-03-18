@@ -22,7 +22,7 @@ class TrainingService {
       category: apiTraining.trainingCategory.toLowerCase(),
       schedule: {
         startDate: this.formatDate(apiTraining.startDate),
-        endDate: this.formatDate(apiTraining.endDate),
+        endDate: apiTraining.endDate ? this.formatDate(apiTraining.endDate) : '',
       },
       status: this.mapStatus(apiTraining.trainingStatus),
       capacity: {
@@ -174,7 +174,7 @@ class TrainingService {
       trainingHours: formData.hours,
       location: formData.location || null,
       maxParticipants: formData.maxParticipants,
-      currentParticipants: 0,
+      currentParticipants: formData.currentParticipants,
       trainingCategory: formData.category,
       price: formData.price,
       certificateProvided: formData.certificateProvided,

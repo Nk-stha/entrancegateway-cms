@@ -1,5 +1,6 @@
 import { useState, FormEvent } from 'react';
 import type { TrainingFormData, TrainingFormErrors } from '@/types/training.types';
+import { toast } from '@/lib/utils/toast';
 
 const initialFormData: TrainingFormData = {
   name: '',
@@ -11,6 +12,7 @@ const initialFormData: TrainingFormData = {
   type: 'hybrid',
   hours: 0,
   maxParticipants: 0,
+  currentParticipants: 0,
   price: 0,
   offerPercentage: 0,
   syllabus: '',
@@ -52,6 +54,14 @@ export function useTrainingForm() {
       newErrors.maxParticipants = 'Max participants must be greater than 0';
     }
 
+    if (formData.currentParticipants < 0) {
+      newErrors.currentParticipants = 'Current participants cannot be negative';
+    }
+
+    if (formData.currentParticipants > formData.maxParticipants) {
+      newErrors.currentParticipants = 'Current participants cannot exceed max participants';
+    }
+
     if (formData.price < 0) {
       newErrors.price = 'Price cannot be negative';
     }
@@ -81,6 +91,7 @@ export function useTrainingForm() {
     e.preventDefault();
     
     if (!validateForm()) {
+      toast.error('Please fix the validation errors before submitting.');
       return;
     }
 
@@ -88,7 +99,8 @@ export function useTrainingForm() {
     try {
       await onSubmit(formData);
     } catch (error) {
-      setErrors({ general: 'Failed to create training. Please try again.' });
+      console.error('Failed to submit training:', error);
+      toast.error('An unexpected error occurred. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

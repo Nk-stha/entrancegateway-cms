@@ -42,7 +42,7 @@ export default function EditTrainingPage() {
         'HYBRID': 'hybrid',
       };
 
-      setFormData({
+      const mappedFormData = {
         name: training.trainingName || '',
         category: training.trainingCategory?.toLowerCase() || '',
         certificateProvided: training.certificateProvided || false,
@@ -52,23 +52,29 @@ export default function EditTrainingPage() {
         type: typeMap[training.trainingType] || 'hybrid',
         hours: training.trainingHours || 0,
         maxParticipants: training.maxParticipants || 0,
+        currentParticipants: training.currentParticipants || 0,
         price: training.price || 0,
         offerPercentage: training.offerPercentage || 0,
         syllabus: training.syllabusDescription || '',
         location: training.location || '',
         remarks: training.remarks || '',
         file: null,
-        links: training.links?.filter(link => link.linkType !== 'MATERIALS').map(link => ({
-          label: link.label || '',
-          url: link.url || '',
-          linkType: link.linkType,
-        })) || [],
-      });
+        links: (training.trainingLinks || training.links || [])
+          .filter(link => link.linkType !== 'MATERIALS')
+          .map(link => ({
+            label: link.label || '',
+            url: link.url || '',
+            linkType: link.linkType,
+          })),
+      };
+
+      setFormData(mappedFormData);
 
       setLoading(false);
     };
 
     loadTraining();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trainingId]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -291,7 +297,7 @@ export default function EditTrainingPage() {
                 label="Training Hours"
                 type="number"
                 placeholder="200"
-                value={formData.hours === 0 ? 0 : formData.hours || ''}
+                value={formData.hours === 0 ? '' : formData.hours}
                 onChange={(e) => handleChange('hours', e.target.value === '' ? 0 : parseInt(e.target.value, 10) || 0)}
                 error={errors.hours}
                 required
@@ -314,15 +320,22 @@ export default function EditTrainingPage() {
               <Input
                 label="Max Participants"
                 type="number"
-                value={formData.maxParticipants === 0 ? 0 : formData.maxParticipants || ''}
+                value={formData.maxParticipants === 0 ? '' : formData.maxParticipants}
                 onChange={(e) => handleChange('maxParticipants', e.target.value === '' ? 0 : parseInt(e.target.value, 10) || 0)}
                 error={errors.maxParticipants}
                 required
               />
               <Input
+                label="Current Participants"
+                type="number"
+                value={formData.currentParticipants === 0 ? '' : formData.currentParticipants}
+                onChange={(e) => handleChange('currentParticipants', e.target.value === '' ? 0 : parseInt(e.target.value, 10) || 0)}
+                error={errors.currentParticipants}
+              />
+              <Input
                 label="Price (NPR)"
                 type="number"
-                value={formData.price === 0 ? 0 : formData.price || ''}
+                value={formData.price === 0 ? '' : formData.price}
                 onChange={(e) => handleChange('price', e.target.value === '' ? 0 : parseInt(e.target.value, 10) || 0)}
                 error={errors.price}
                 required
@@ -331,7 +344,7 @@ export default function EditTrainingPage() {
                 <Input
                   label="Offer Percentage (%)"
                   type="number"
-                  value={formData.offerPercentage === 0 ? 0 : formData.offerPercentage || ''}
+                  value={formData.offerPercentage === 0 ? '' : formData.offerPercentage}
                   onChange={(e) => handleChange('offerPercentage', e.target.value === '' ? 0 : parseInt(e.target.value, 10) || 0)}
                   error={errors.offerPercentage}
                 />

@@ -200,7 +200,7 @@ export default function CreateTrainingPage() {
                 label="Training Hours"
                 type="number"
                 placeholder="200"
-                value={formData.hours === 0 ? 0 : formData.hours || ''}
+                value={formData.hours === 0 ? '' : formData.hours}
                 onChange={(e) => handleChange('hours', e.target.value === '' ? 0 : parseInt(e.target.value, 10) || 0)}
                 error={errors.hours}
                 required
@@ -223,15 +223,22 @@ export default function CreateTrainingPage() {
               <Input
                 label="Max Participants"
                 type="number"
-                value={formData.maxParticipants === 0 ? 0 : formData.maxParticipants || ''}
+                value={formData.maxParticipants === 0 ? '' : formData.maxParticipants}
                 onChange={(e) => handleChange('maxParticipants', e.target.value === '' ? 0 : parseInt(e.target.value, 10) || 0)}
                 error={errors.maxParticipants}
                 required
               />
               <Input
+                label="Current Participants"
+                type="number"
+                value={formData.currentParticipants === 0 ? '' : formData.currentParticipants}
+                onChange={(e) => handleChange('currentParticipants', e.target.value === '' ? 0 : parseInt(e.target.value, 10) || 0)}
+                error={errors.currentParticipants}
+              />
+              <Input
                 label="Price (NPR)"
                 type="number"
-                value={formData.price === 0 ? 0 : formData.price || ''}
+                value={formData.price === 0 ? '' : formData.price}
                 onChange={(e) => handleChange('price', e.target.value === '' ? 0 : parseInt(e.target.value, 10) || 0)}
                 error={errors.price}
                 required
@@ -240,7 +247,7 @@ export default function CreateTrainingPage() {
                 <Input
                   label="Offer Percentage (%)"
                   type="number"
-                  value={formData.offerPercentage === 0 ? 0 : formData.offerPercentage || ''}
+                  value={formData.offerPercentage === 0 ? '' : formData.offerPercentage}
                   onChange={(e) => handleChange('offerPercentage', e.target.value === '' ? 0 : parseInt(e.target.value, 10) || 0)}
                   error={errors.offerPercentage}
                 />

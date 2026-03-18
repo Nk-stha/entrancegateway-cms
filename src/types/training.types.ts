@@ -8,6 +8,7 @@ export interface TrainingFormData {
   type: 'online' | 'onsite' | 'hybrid';
   hours: number;
   maxParticipants: number;
+  currentParticipants: number;
   price: number;
   offerPercentage: number;
   syllabus: string;
@@ -31,11 +32,11 @@ export interface TrainingFormErrors {
   endDate?: string;
   hours?: string;
   maxParticipants?: string;
+  currentParticipants?: string;
   price?: string;
   offerPercentage?: string;
   syllabus?: string;
   location?: string;
-  general?: string;
 }
 
 export interface Training {
@@ -62,7 +63,7 @@ export interface TrainingApiResponse {
   description: string;
   syllabusDescription: string;
   startDate: string;
-  endDate: string;
+  endDate: string | null;
   trainingType: 'REMOTE' | 'ON_SITE' | 'HYBRID';
   trainingStatus: 'REGISTRATION_OPEN' | 'UPCOMING' | 'CLOSED';
   trainingHours: number;
@@ -73,9 +74,10 @@ export interface TrainingApiResponse {
   price: number;
   certificateProvided: boolean;
   materialsLink?: string;
-  remarks?: string;
+  remarks?: string | null;
   offerPercentage?: number;
   links?: TrainingLinkResponse[];
+  trainingLinks?: TrainingLinkResponse[];
 }
 
 export interface TrainingLinkResponse {
