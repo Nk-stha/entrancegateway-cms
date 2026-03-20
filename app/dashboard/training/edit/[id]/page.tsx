@@ -338,7 +338,6 @@ export default function EditTrainingPage() {
                 value={formData.price === 0 ? '' : formData.price}
                 onChange={(e) => handleChange('price', e.target.value === '' ? 0 : parseInt(e.target.value, 10) || 0)}
                 error={errors.price}
-                required
               />
               <div>
                 <Input
