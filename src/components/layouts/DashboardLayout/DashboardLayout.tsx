@@ -13,6 +13,7 @@ const navItems: NavItem[] = [
   { label: 'Users', href: '/dashboard/users', icon: 'people' },
   { label: 'Colleges', href: '/dashboard/colleges', icon: 'account_balance' },
   { label: 'Courses', href: '/dashboard/courses', icon: 'book' },
+  { label: 'Syllabus', href: '/dashboard/syllabus', icon: 'description' },
   { label: 'Categories', href: '/dashboard/categories', icon: 'category' },
   { label: 'Entrance Types', href: '/dashboard/entrance-types', icon: 'school' },
   { label: 'Question Sets', href: '/dashboard/question-sets', icon: 'quiz' },

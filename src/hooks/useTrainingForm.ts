@@ -62,10 +62,6 @@ export function useTrainingForm() {
       newErrors.currentParticipants = 'Current participants cannot exceed max participants';
     }
 
-    if (formData.price < 0) {
-      newErrors.price = 'Price cannot be negative';
-    }
-
     if (formData.offerPercentage < 0 || formData.offerPercentage > 100) {
       newErrors.offerPercentage = 'Offer percentage must be between 0 and 100';
     }
