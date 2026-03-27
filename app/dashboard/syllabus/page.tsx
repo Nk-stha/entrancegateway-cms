@@ -283,12 +283,6 @@ export default function SyllabusPage() {
                       Semester
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Credits
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Hours
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
@@ -296,7 +290,7 @@ export default function SyllabusPage() {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {loading ? (
                     <tr>
-                      <td colSpan={7} className="px-6 py-12 text-center">
+                      <td colSpan={6} className="px-6 py-12 text-center">
                         <div className="flex justify-center">
                           <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: 'var(--color-brand-blue)' }}></div>
                         </div>
@@ -304,7 +298,7 @@ export default function SyllabusPage() {
                     </tr>
                   ) : syllabusList.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
+                      <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
                         No syllabus found
                       </td>
                     </tr>
@@ -330,15 +324,34 @@ export default function SyllabusPage() {
                           <div className="text-sm text-gray-900">{syllabus.semester}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{syllabus.creditHours}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-500">
-                            L: {syllabus.lectureHours} / P: {syllabus.practicalHours}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center gap-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                window.location.href = `/dashboard/notes/create?syllabusId=${syllabus.syllabusId}`;
+                              }}
+                              className="p-2 text-gray-600 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors"
+                              title="Add Note"
+                              aria-label="Add note for this syllabus"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v6m3-3H9" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                window.location.href = `/dashboard/old-questions/create?syllabusId=${syllabus.syllabusId}&courseId=${syllabus.courseId}`;
+                              }}
+                              className="p-2 text-gray-600 hover:bg-amber-50 hover:text-amber-600 rounded-lg transition-colors"
+                              title="Add Old Question"
+                              aria-label="Add old question for this syllabus"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                            </button>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -403,19 +416,31 @@ export default function SyllabusPage() {
                         <span className="text-gray-500">Semester:</span>
                         <span className="ml-1 font-medium">{syllabus.semester}</span>
                       </div>
-                      <div>
-                        <span className="text-gray-500">Credits:</span>
-                        <span className="ml-1 font-medium">{syllabus.creditHours}</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-500">Hours:</span>
-                        <span className="ml-1 font-medium">L:{syllabus.lectureHours} P:{syllabus.practicalHours}</span>
-                      </div>
                     </div>
                     <div className="text-sm text-gray-600">
                       {syllabus.courseName}
                     </div>
-                    <div className="flex gap-2 pt-2">
+                    <div className="flex flex-wrap gap-2 pt-2">
+                      <button
+                        onClick={() => window.location.href = `/dashboard/notes/create?syllabusId=${syllabus.syllabusId}`}
+                        className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors"
+                        style={{ backgroundColor: 'var(--color-brand-blue)' }}
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                        Add Note
+                      </button>
+                      <button
+                        onClick={() => window.location.href = `/dashboard/old-questions/create?syllabusId=${syllabus.syllabusId}&courseId=${syllabus.courseId}`}
+                        className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors"
+                        style={{ backgroundColor: 'var(--color-warning)', color: 'var(--color-brand-navy)' }}
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Add Old Q
+                      </button>
                       <button
                         onClick={() => handleEdit(syllabus.syllabusId)}
                         className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"

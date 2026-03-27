@@ -1,14 +1,19 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ProtectedRoute } from '@/components/providers/ProtectedRoute';
 import { DashboardLayout } from '@/components/layouts/DashboardLayout';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { useOldQuestionForm } from '@/hooks/useOldQuestionForm';
 
-export default function CreateOldQuestionPage() {
+function CreateOldQuestionContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const preselectedSyllabusId = searchParams.get('syllabusId') || undefined;
+  const preselectedCourseId = searchParams.get('courseId') || undefined;
+
   const {
     formData,
     errors,
@@ -20,7 +25,7 @@ export default function CreateOldQuestionPage() {
     handleInputChange,
     handleSubmit,
     resetForm,
-  } = useOldQuestionForm();
+  } = useOldQuestionForm(preselectedSyllabusId, preselectedCourseId);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -239,5 +244,21 @@ export default function CreateOldQuestionPage() {
         </div>
       </DashboardLayout>
     </ProtectedRoute>
+  );
+}
+
+export default function CreateOldQuestionPage() {
+  return (
+    <Suspense fallback={
+      <ProtectedRoute>
+        <DashboardLayout>
+          <div className="flex items-center justify-center min-h-[50vh]">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: 'var(--color-brand-blue)' }}></div>
+          </div>
+        </DashboardLayout>
+      </ProtectedRoute>
+    }>
+      <CreateOldQuestionContent />
+    </Suspense>
   );
 }

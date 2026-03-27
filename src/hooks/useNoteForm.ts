@@ -12,8 +12,11 @@ const initialFormData: NoteFormData = {
   file: null,
 };
 
-export function useNoteForm() {
-  const [formData, setFormData] = useState<NoteFormData>(initialFormData);
+export function useNoteForm(initialSyllabusId?: string) {
+  const [formData, setFormData] = useState<NoteFormData>(() => ({
+    ...initialFormData,
+    syllabusId: initialSyllabusId || '',
+  }));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [syllabusList, setSyllabusList] = useState<Syllabus[]>([]);

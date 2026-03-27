@@ -16,8 +16,14 @@ const initialFormData: OldQuestionFormData = {
   file: null,
 };
 
-export function useOldQuestionForm() {
-  const [formData, setFormData] = useState<OldQuestionFormData>(initialFormData);
+export function useOldQuestionForm(initialSyllabusId?: string, initialCourseId?: string) {
+  const getInitialFormData = (): OldQuestionFormData => ({
+    ...initialFormData,
+    syllabusId: initialSyllabusId || '',
+    courseId: initialCourseId || '',
+  });
+
+  const [formData, setFormData] = useState<OldQuestionFormData>(getInitialFormData);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [syllabusList, setSyllabusList] = useState<Syllabus[]>([]);
@@ -126,7 +132,7 @@ export function useOldQuestionForm() {
 
       if (result.success) {
         toast.success('Old question created successfully');
-        setFormData(initialFormData);
+        setFormData(getInitialFormData());
         setErrors({});
         return true;
       } else {
@@ -148,7 +154,7 @@ export function useOldQuestionForm() {
   };
 
   const resetForm = () => {
-    setFormData(initialFormData);
+    setFormData(getInitialFormData());
     setErrors({});
     
     const fileInputs = document.querySelectorAll('input[type="file"]');

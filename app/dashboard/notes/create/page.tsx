@@ -1,14 +1,18 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ProtectedRoute } from '@/components/providers/ProtectedRoute';
 import { DashboardLayout } from '@/components/layouts/DashboardLayout';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { useNoteForm } from '@/hooks/useNoteForm';
 
-export default function CreateNotePage() {
+function CreateNoteContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const preselectedSyllabusId = searchParams.get('syllabusId') || undefined;
+
   const {
     formData,
     errors,
@@ -18,7 +22,7 @@ export default function CreateNotePage() {
     handleInputChange,
     handleSubmit,
     resetForm,
-  } = useNoteForm();
+  } = useNoteForm(preselectedSyllabusId);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -198,5 +202,21 @@ export default function CreateNotePage() {
         </div>
       </DashboardLayout>
     </ProtectedRoute>
+  );
+}
+
+export default function CreateNotePage() {
+  return (
+    <Suspense fallback={
+      <ProtectedRoute>
+        <DashboardLayout>
+          <div className="flex items-center justify-center min-h-[50vh]">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: 'var(--color-brand-blue)' }}></div>
+          </div>
+        </DashboardLayout>
+      </ProtectedRoute>
+    }>
+      <CreateNoteContent />
+    </Suspense>
   );
 }

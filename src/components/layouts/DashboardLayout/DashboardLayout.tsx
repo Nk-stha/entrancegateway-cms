@@ -13,20 +13,31 @@ const navItems: NavItem[] = [
   { label: 'Users', href: '/dashboard/users', icon: 'people' },
   { label: 'Colleges', href: '/dashboard/colleges', icon: 'account_balance' },
   { label: 'Courses', href: '/dashboard/courses', icon: 'book' },
-  { label: 'Syllabus', href: '/dashboard/syllabus', icon: 'description' },
-  { label: 'Notes', href: '/dashboard/notes', icon: 'note' },
-  { label: 'Old Questions', href: '/dashboard/old-questions', icon: 'help' },
+  { label: 'Syllabus', href: '/dashboard/syllabus', icon: 'menu_book' },
+  { label: 'Notes', href: '/dashboard/notes', icon: 'sticky_note' },
+  { label: 'Old Questions', href: '/dashboard/old-questions', icon: 'history_edu' },
   { label: 'Categories', href: '/dashboard/categories', icon: 'category' },
   { label: 'Entrance Types', href: '/dashboard/entrance-types', icon: 'school' },
-  { label: 'Question Sets', href: '/dashboard/question-sets', icon: 'quiz' },
-  { label: 'Quiz Analytics', href: '/dashboard/analytics', icon: 'analytics' },
-  { label: 'Quiz Attempts', href: '/dashboard/quiz-attempts', icon: 'assignment_turned_in' },
-  { label: 'Quiz Purchases', href: '/dashboard/quiz-purchases', icon: 'shopping_cart' },
-  { label: 'Training', href: '/dashboard/training', icon: 'model_training' },
-  { label: 'Enrollments', href: '/dashboard/enrollments', icon: 'assignment' },
-  { label: 'Blog', href: '/dashboard/blog', icon: 'rss_feed' },
-  { label: 'Audit Logs', href: '/dashboard/audit-logs', icon: 'history' },
-  { label: 'Settings', href: '/dashboard/settings', icon: 'settings' },
+  { 
+    label: 'Quiz', 
+    icon: 'quiz',
+    children: [
+      { label: 'Question Sets', href: '/dashboard/question-sets', icon: 'list_alt' },
+      { label: 'Quiz Attempts', href: '/dashboard/quiz-attempts', icon: 'assignment_turned_in' },
+      { label: 'Quiz Purchases', href: '/dashboard/quiz-purchases', icon: 'receipt' },
+      { label: 'Quiz Analytics', href: '/dashboard/analytics', icon: 'bar_chart' },
+    ],
+  },
+  { 
+    label: 'Training', 
+    icon: 'fitness_center',
+    children: [
+      { label: 'Trainings', href: '/dashboard/training', icon: 'model_training' },
+      { label: 'Enrollments', href: '/dashboard/enrollments', icon: 'how_to_reg' },
+    ],
+  },
+  { label: 'Blog', href: '/dashboard/blog', icon: 'article' },
+  { label: 'Audit Logs', href: '/dashboard/audit-logs', icon: 'policy' },
 ];
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
