@@ -6,7 +6,6 @@ import type {
   CreateSyllabusResponse,
   UpdateSyllabusRequest,
   UpdateSyllabusResponse,
-  UpdateSyllabusFileResponse,
   Syllabus
 } from '@/types/syllabus.types';
 import type { ApiError } from '@/types/api.types';
@@ -281,7 +280,7 @@ class SyllabusService {
         formData
       );
 
-      if (!response || !response.data || !response.data.data) {
+      if (!response?.data?.data) {
         return {
           success: false,
           error: 'Invalid response from server',
@@ -329,12 +328,12 @@ class SyllabusService {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await apiClient.putMultipart<UpdateSyllabusFileResponse>(
+      const response = await apiClient.putMultipart<Syllabus>(
         `${this.endpoint}/${syllabusId}/file`,
         formData
       );
 
-      if (!response || !response.data || !response.data.data) {
+      if (!response?.data) {
         return {
           success: false,
           error: 'Invalid response from server',
@@ -343,7 +342,7 @@ class SyllabusService {
 
       return {
         success: true,
-        data: response.data.data,
+        data: response.data,
       };
     } catch (error) {
       const apiError = error as ApiError;
