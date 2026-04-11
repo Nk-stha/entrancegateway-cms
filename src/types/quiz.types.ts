@@ -132,6 +132,108 @@ export interface QuestionSetFormData {
     entranceTypeId: number | null;
 }
 
+// ─── Quiz Templates ──────────────────────────────────────────────
+export type QuizTemplateType = 'PRACTICE' | 'COMPETITIVE';
+export type QuizTemplateStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+export type QuizDifficultyLevel = 'EASY' | 'MODERATE' | 'DIFFICULT';
+
+export interface QuizTemplateTopicDistribution {
+    topicId: string;
+    count: number;
+    weightage: number;
+}
+
+export interface QuizTemplateDifficultyDistribution {
+    EASY?: number;
+    MODERATE?: number;
+    DIFFICULT?: number;
+}
+
+export interface QuizTemplateConstraints {
+    noRepeatWithinDays?: number;
+    avoidPreviouslyFailed?: boolean;
+    maxUsageCount?: number;
+}
+
+export interface QuizTemplateConfig {
+    totalQuestions: number;
+    totalMarks: number;
+    durationMinutes: number;
+    topicDistribution: QuizTemplateTopicDistribution[];
+    difficultyDistribution?: QuizTemplateDifficultyDistribution;
+    enableNegativeMarking?: boolean;
+    negativeMarkValue?: number;
+    constraints?: QuizTemplateConstraints;
+}
+
+export interface CreateQuizTemplateRequest {
+    name: string;
+    description?: string;
+    type: QuizTemplateType;
+    entryFee: number;
+    config: QuizTemplateConfig;
+    status?: QuizTemplateStatus;
+}
+
+export interface QuizTemplateMutationResponse {
+    templateId: string;
+    name: string;
+    description: string | null;
+    type: QuizTemplateType;
+    entryFee: number;
+    config: QuizTemplateConfig;
+    status: QuizTemplateStatus;
+    createdAt: string;
+    updatedAt: string | null;
+    createdById: number;
+    createdByName: string;
+}
+
+export interface QuizTemplateFormData {
+    name: string;
+    description: string;
+    type: QuizTemplateType;
+    entryFee: string;
+    totalQuestions: string;
+    totalMarks: string;
+    durationMinutes: string;
+    enableNegativeMarking: boolean;
+    negativeMarkValue: string;
+    status: QuizTemplateStatus;
+    difficultyDistribution: {
+        EASY: string;
+        MODERATE: string;
+        DIFFICULT: string;
+    };
+    constraints: {
+        noRepeatWithinDays: string;
+        avoidPreviouslyFailed: boolean;
+        maxUsageCount: string;
+    };
+    topicDistribution: Array<{
+        id: string;
+        topicId: string;
+        count: string;
+        weightage: string;
+    }>;
+}
+
+export interface QuizTemplateFormErrors {
+    name?: string;
+    description?: string;
+    type?: string;
+    entryFee?: string;
+    totalQuestions?: string;
+    totalMarks?: string;
+    durationMinutes?: string;
+    negativeMarkValue?: string;
+    status?: string;
+    difficultyDistribution?: string;
+    topicDistribution?: string;
+    constraints?: string;
+    general?: string;
+}
+
 // ─── Question & Options ─────────────────────────────────────────
 export interface OptionApiResponse {
     optionId: number;
@@ -192,18 +294,16 @@ export interface QuizAttemptApiResponse {
     attemptId: number;
     user: {
         userId: number;
-        fullname: string;
+        email: string;
     };
-    questionSet: {
-        setId: number;
-        setName: string;
+    quizTemplate: {
+        templateId: string;
+        name: string;
     };
-    mcqQuestion: {
-        questionId: number;
-        question: string;
-    };
-    selectedOptionId: number;
-    isCorrect: boolean;
+    questionsSnapshotJson: string;
+    score: number;
+    isSubmitted: boolean;
+    attemptedAt: string;
 }
 
 // ─── Dashboard / Analytics ───────────────────────────────────────

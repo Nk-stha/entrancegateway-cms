@@ -34,6 +34,10 @@ export function useQuizAttempts(initialParams: PaginatedQueryParams = { size: 20
                 pageSize: result.pageSize,
                 isLast: result.isLast,
             });
+
+            if (result.error) {
+                setError(result.error);
+            }
         } catch {
             setError('Unable to load quiz attempts. Please try again later.');
             setAttempts([]);

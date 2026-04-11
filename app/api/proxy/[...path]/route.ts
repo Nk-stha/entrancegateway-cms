@@ -62,6 +62,7 @@ async function proxyRequest(
       'question-sets',
       'questions',
       'quiz-attempts',
+      'quiz-templates',
       'dashboard'
     ];
     

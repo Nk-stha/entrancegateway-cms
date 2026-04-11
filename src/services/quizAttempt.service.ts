@@ -3,35 +3,57 @@ import type {
     QuizAttemptApiResponse,
     PaginatedQueryParams,
 } from '@/types/quiz.types';
-import type { ApiError } from '@/types/api.types';
+
+interface QuizAttemptListResult {
+    attempts: QuizAttemptApiResponse[];
+    totalElements: number;
+    totalPages: number;
+    currentPage: number;
+    pageSize: number;
+    isLast: boolean;
+    error?: string;
+}
+
+function extractApiError(error: unknown, fallback: string): string {
+    if (error !== null && typeof error === 'object') {
+        const obj = error as Record<string, unknown>;
+        if (typeof obj.message === 'string' && obj.message.trim().length > 0) {
+            return obj.message;
+        }
+    }
+
+    return fallback;
+}
 
 class QuizAttemptService {
     private readonly endpoint = '/quiz-attempts';
 
     private buildQueryString(params: PaginatedQueryParams): string {
         const queryParams = new URLSearchParams();
+        const sortDirection = params.sortDir ?? 'asc';
+        const sortField = params.sortBy ?? 'attemptId';
+
         if (params.page !== undefined) queryParams.append('page', params.page.toString());
         if (params.size !== undefined) queryParams.append('size', params.size.toString());
-        if (params.sortBy) queryParams.append('sortBy', params.sortBy);
-        if (params.sortDir) queryParams.append('sortDir', params.sortDir);
+
+        // Runtime compatibility: backend appears to require a concrete sort property.
+        // Send Spring-style `sort=field,direction` in addition to the documented sortDir.
+        queryParams.append('sort', `${sortField},${sortDirection}`);
+        queryParams.append('sortDir', sortDirection);
+
         const qs = queryParams.toString();
         return qs ? `?${qs}` : '';
     }
 
-    async getAttempts(params: PaginatedQueryParams = {}): Promise<{
-        attempts: QuizAttemptApiResponse[];
-        totalElements: number;
-        totalPages: number;
-        currentPage: number;
-        pageSize: number;
-        isLast: boolean;
-    }> {
+    async getAttempts(params: PaginatedQueryParams = {}): Promise<QuizAttemptListResult> {
         try {
             const queryString = this.buildQueryString({
-                sortDir: 'desc',
+                page: 0,
+                size: 10,
+                sortDir: 'asc',
                 ...params,
             });
-            console.log('Fetching quiz attempts from:', `${this.endpoint}${queryString}`);
+
             const response = await apiClient.get<{
                 content: QuizAttemptApiResponse[];
                 totalElements: number;
@@ -41,8 +63,16 @@ class QuizAttemptService {
                 last: boolean;
             }>(`${this.endpoint}${queryString}`);
 
-            if (!response || !response.data) {
-                throw new Error('Invalid response format');
+            if (!response?.data) {
+                return {
+                    attempts: [],
+                    totalElements: 0,
+                    totalPages: 0,
+                    currentPage: 0,
+                    pageSize: params.size ?? 10,
+                    isLast: true,
+                    error: 'Invalid response from server',
+                };
             }
 
             const { content, totalElements, totalPages, pageNumber, pageSize, last } = response.data;
@@ -55,21 +85,15 @@ class QuizAttemptService {
                 pageSize,
                 isLast: last,
             };
-        } catch (error) {
-            const apiError = error as ApiError;
-            console.error('Failed to fetch quiz attempts:', apiError);
-            console.error('Error details:', {
-                message: apiError.message,
-                errors: apiError.errors,
-                status: apiError.status,
-            });
+        } catch (error: unknown) {
             return {
                 attempts: [],
                 totalElements: 0,
                 totalPages: 0,
                 currentPage: 0,
-                pageSize: params.size || 20,
+                pageSize: params.size ?? 10,
                 isLast: true,
+                error: extractApiError(error, 'Failed to fetch quiz attempts'),
             };
         }
     }
@@ -81,13 +105,10 @@ class QuizAttemptService {
         try {
             await apiClient.delete(`${this.endpoint}/${id}`);
             return { success: true };
-        } catch (error) {
-            const apiError = error as ApiError;
-            console.error(`Failed to delete quiz attempt ${id}:`, apiError);
-
+        } catch (error: unknown) {
             return {
                 success: false,
-                error: apiError.message || 'Failed to delete quiz attempt',
+                error: extractApiError(error, 'Failed to delete quiz attempt'),
             };
         }
     }

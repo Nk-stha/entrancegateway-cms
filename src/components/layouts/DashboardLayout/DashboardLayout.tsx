@@ -23,6 +23,7 @@ const navItems: NavItem[] = [
     icon: 'quiz',
     children: [
       { label: 'Question Sets', href: '/dashboard/question-sets', icon: 'list_alt' },
+      { label: 'Quiz Templates', href: '/dashboard/quiz-templates', icon: 'settings' },
       { label: 'Quiz Attempts', href: '/dashboard/quiz-attempts', icon: 'assignment_turned_in' },
       { label: 'Quiz Purchases', href: '/dashboard/quiz-purchases', icon: 'receipt' },
       { label: 'Quiz Analytics', href: '/dashboard/analytics', icon: 'bar_chart' },
