@@ -1,26 +1,18 @@
 #!/usr/bin/env bash
 # ============================================================================
-#  EntranceGateway CMS — Production Deployment Script
+#  EntranceGateway CMS — Docker Deployment Script
 # ============================================================================
 #  Usage:
-#    ./deploy.sh                    # Full deploy (pull → install → build → restart)
-#    ./deploy.sh --build-only       # Build without restarting
-#    ./deploy.sh --restart-only     # Restart PM2 without rebuilding
-#    ./deploy.sh --setup            # First-time server setup
-#    ./deploy.sh --rollback         # Rollback to previous build
-#    ./deploy.sh --status           # Check application status
-#    ./deploy.sh --logs             # Tail PM2 logs
-#    ./deploy.sh --help             # Show this help
-#
-#  Environment:
-#    Expects a .env.production file in the project root (or .env).
-#    Required variables: API_BASE_URL, NEXT_PUBLIC_API_URL
-#
-#  Prerequisites:
-#    - Node.js >= 18.x
-#    - npm or pnpm
-#    - PM2 (installed globally)
-#    - Git
+#    ./deploy.sh                    # Full deploy (pull → build → up)
+#    ./deploy.sh --ci               # CI mode (non-interactive, used by GitHub Actions)
+#    ./deploy.sh --ci-rollback      # CI rollback to previous image
+#    ./deploy.sh --rollback         # Rollback to previous image
+#    ./deploy.sh --restart          # Restart containers
+#    ./deploy.sh --status           # Show status
+#    ./deploy.sh --logs             # Tail logs
+#    ./deploy.sh --stop             # Stop containers
+#    ./deploy.sh --setup            # First-time setup
+#    ./deploy.sh --help             # Show help
 # ============================================================================
 
 set -euo pipefail
@@ -29,21 +21,14 @@ set -euo pipefail
 
 APP_NAME="entrancegateway-cms"
 APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PORT="${PORT:-3000}"
-NODE_ENV="production"
-PM2_INSTANCES="${PM2_INSTANCES:-2}"             # Number of PM2 cluster instances
-BACKUP_DIR="${APP_DIR}/.deploy-backups"
-MAX_BACKUPS=5                                    # Keep last N backups
+APP_PORT="${APP_PORT:-6030}"
 LOG_FILE="${APP_DIR}/deploy.log"
-HEALTH_CHECK_URL="http://localhost:${PORT}"
-HEALTH_CHECK_TIMEOUT=30                          # Seconds to wait for health check
-PACKAGE_MANAGER=""                               # Auto-detected below
-
-# CI mode: auto-detected from CI env var or --ci flag
+HEALTH_CHECK_URL="http://localhost:${APP_PORT}"
+HEALTH_CHECK_TIMEOUT=60
 IS_CI="${CI:-false}"
 
-# ─── Colors & Formatting ───────────────────────────────────────────────────
-# Disable colors in CI (cleaner logs)
+# ─── Colors ─────────────────────────────────────────────────────────────────
+
 if [ "$IS_CI" = "true" ]; then
     RED='' GREEN='' YELLOW='' BLUE='' CYAN='' BOLD='' NC=''
 else
@@ -58,28 +43,21 @@ fi
 
 # ─── Utility Functions ─────────────────────────────────────────────────────
 
-timestamp() {
-    date '+%Y-%m-%d %H:%M:%S'
-}
+timestamp() { date '+%Y-%m-%d %H:%M:%S'; }
 
 log() {
-    local level="$1"
-    shift
-    local msg="$*"
+    local level="$1"; shift; local msg="$*"
     local color=""
-
     case "$level" in
-        INFO)    color="${GREEN}" ;;
-        WARN)    color="${YELLOW}" ;;
-        ERROR)   color="${RED}" ;;
-        STEP)    color="${CYAN}" ;;
-        *)       color="${NC}" ;;
+        INFO)  color="${GREEN}" ;;
+        WARN)  color="${YELLOW}" ;;
+        ERROR) color="${RED}" ;;
+        STEP)  color="${CYAN}" ;;
+        *)     color="${NC}" ;;
     esac
-
     echo -e "${color}[$(timestamp)] [${level}]${NC} ${msg}"
     echo "[$(timestamp)] [${level}] ${msg}" >> "${LOG_FILE}" 2>/dev/null || true
 
-    # GitHub Actions annotations
     if [ "$IS_CI" = "true" ]; then
         case "$level" in
             ERROR) echo "::error::${msg}" ;;
@@ -90,21 +68,16 @@ log() {
 
 step() {
     echo ""
-    if [ "$IS_CI" = "true" ]; then
-        echo "::group::$1"
-    fi
+    [ "$IS_CI" = "true" ] && echo "::group::$1"
     log STEP "━━━ $1 ━━━"
 }
 
 end_step() {
-    if [ "$IS_CI" = "true" ]; then
-        echo "::endgroup::"
-    fi
+    [ "$IS_CI" = "true" ] && echo "::endgroup::"
 }
 
 die() {
     log ERROR "$1"
-    # Dump last 30 lines of deploy.log on failure in CI
     if [ "$IS_CI" = "true" ] && [ -f "${LOG_FILE}" ]; then
         echo ""
         echo "::group::📋 Deploy log (last 30 lines)"
@@ -116,7 +89,6 @@ die() {
 
 confirm() {
     local prompt="$1"
-    # Auto-confirm in CI mode
     if [ "$IS_CI" = "true" ]; then
         log INFO "[CI] Auto-confirming: ${prompt}"
         return 0
@@ -127,99 +99,46 @@ confirm() {
 
 # ─── Pre-flight Checks ─────────────────────────────────────────────────────
 
-detect_package_manager() {
-    if [ -f "${APP_DIR}/pnpm-lock.yaml" ] && command -v pnpm &>/dev/null; then
-        PACKAGE_MANAGER="pnpm"
-    elif [ -f "${APP_DIR}/package-lock.json" ]; then
-        PACKAGE_MANAGER="npm"
-    elif command -v pnpm &>/dev/null; then
-        PACKAGE_MANAGER="pnpm"
-    else
-        PACKAGE_MANAGER="npm"
-    fi
-    log INFO "Package manager: ${BOLD}${PACKAGE_MANAGER}${NC}"
-}
-
 check_prerequisites() {
     step "Checking prerequisites"
 
-    # Node.js
-    if ! command -v node &>/dev/null; then
-        die "Node.js is not installed. Install Node.js >= 18.x"
+    if ! command -v docker &>/dev/null; then
+        die "Docker is not installed. Install: https://docs.docker.com/engine/install/"
     fi
-    local node_version
-    node_version=$(node -v | sed 's/v//')
-    local node_major
-    node_major=$(echo "$node_version" | cut -d. -f1)
-    if [ "$node_major" -lt 18 ]; then
-        die "Node.js >= 18.x required (found v${node_version})"
+    log INFO "Docker: $(docker --version | awk '{print $3}' | tr -d ',') ✓"
+
+    if ! docker compose version &>/dev/null; then
+        die "Docker Compose is not available. Install Docker Compose plugin."
     fi
-    log INFO "Node.js: v${node_version} ✓"
+    log INFO "Docker Compose: $(docker compose version --short) ✓"
 
-    # Package manager
-    detect_package_manager
-
-    # PM2
-    if ! command -v pm2 &>/dev/null; then
-        log WARN "PM2 not found. Installing globally..."
-        npm install -g pm2 || die "Failed to install PM2"
+    if ! docker info &>/dev/null 2>&1; then
+        die "Docker daemon is not running or current user lacks permission."
     fi
-    log INFO "PM2: $(pm2 -v) ✓"
+    log INFO "Docker daemon: running ✓"
 
-    # Git
-    if ! command -v git &>/dev/null; then
-        die "Git is not installed"
+    if [ ! -f "${APP_DIR}/docker-compose.yml" ]; then
+        die "docker-compose.yml not found in ${APP_DIR}"
     fi
-    log INFO "Git: $(git --version | awk '{print $3}') ✓"
 
-    # Environment file
+    # Check env file
     if [ -f "${APP_DIR}/.env.production" ]; then
         log INFO "Environment: .env.production ✓"
     elif [ -f "${APP_DIR}/.env" ]; then
         log WARN "Using .env (consider creating .env.production for production)"
     else
-        log WARN "No .env file found — build may fail if env vars are not set"
-    fi
-}
-
-check_env_vars() {
-    step "Validating environment variables"
-
-    local env_file=""
-    if [ -f "${APP_DIR}/.env.production" ]; then
-        env_file="${APP_DIR}/.env.production"
-    elif [ -f "${APP_DIR}/.env" ]; then
-        env_file="${APP_DIR}/.env"
+        log WARN "No .env file found — build may fail"
     fi
 
-    if [ -n "$env_file" ]; then
-        # Check required variables
-        local required_vars=("API_BASE_URL" "NEXT_PUBLIC_API_URL")
-        local missing=()
-
-        for var in "${required_vars[@]}"; do
-            if ! grep -q "^${var}=" "$env_file" 2>/dev/null && [ -z "${!var:-}" ]; then
-                missing+=("$var")
-            fi
-        done
-
-        if [ ${#missing[@]} -gt 0 ]; then
-            log WARN "Missing environment variables: ${missing[*]}"
-            log WARN "These should be set in ${env_file} or exported in the shell"
-        else
-            log INFO "All required environment variables present ✓"
-        fi
-    fi
+    end_step
 }
 
 # ─── Git Operations ────────────────────────────────────────────────────────
 
 pull_latest() {
     step "Pulling latest changes from Git"
-
     cd "${APP_DIR}"
 
-    # Check for uncommitted changes
     if ! git diff --quiet HEAD 2>/dev/null; then
         log WARN "Uncommitted changes detected"
         if ! confirm "Stash changes and continue?"; then
@@ -231,87 +150,54 @@ pull_latest() {
 
     local current_branch
     current_branch=$(git branch --show-current)
-    log INFO "Current branch: ${BOLD}${current_branch}${NC}"
+    log INFO "Branch: ${BOLD}${current_branch}${NC}"
 
     git fetch --all --prune 2>&1 | while read -r line; do log INFO "  $line"; done
     git pull origin "${current_branch}" 2>&1 | while read -r line; do log INFO "  $line"; done
 
     local commit_hash
     commit_hash=$(git rev-parse --short HEAD)
-    local commit_msg
-    commit_msg=$(git log -1 --pretty=format:"%s")
-    log INFO "HEAD: ${BOLD}${commit_hash}${NC} — ${commit_msg}"
+    log INFO "HEAD: ${BOLD}${commit_hash}${NC} — $(git log -1 --pretty=format:'%s')"
 
     end_step
 }
 
-# ─── Backup ─────────────────────────────────────────────────────────────────
+# ─── Docker Build & Deploy ─────────────────────────────────────────────────
 
-create_backup() {
-    step "Creating backup of current build"
+backup_image() {
+    step "Backing up current image"
 
-    if [ ! -d "${APP_DIR}/.next" ]; then
-        log WARN "No existing .next build to backup — skipping"
-        return 0
-    fi
+    local current_image
+    current_image=$(docker images --format '{{.ID}}' "${APP_NAME}" 2>/dev/null | head -1)
 
-    mkdir -p "${BACKUP_DIR}"
-
-    local backup_name
-    backup_name="backup-$(date '+%Y%m%d-%H%M%S')-$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
-    local backup_path="${BACKUP_DIR}/${backup_name}"
-
-    cp -r "${APP_DIR}/.next" "${backup_path}"
-    log INFO "Backup created: ${backup_name}"
-
-    # Prune old backups
-    local backup_count
-    backup_count=$(ls -1d "${BACKUP_DIR}"/backup-* 2>/dev/null | wc -l)
-    if [ "$backup_count" -gt "$MAX_BACKUPS" ]; then
-        local to_delete=$((backup_count - MAX_BACKUPS))
-        ls -1d "${BACKUP_DIR}"/backup-* | head -n "$to_delete" | while read -r old; do
-            rm -rf "$old"
-            log INFO "  Pruned old backup: $(basename "$old")"
-        done
-    fi
-}
-
-# ─── Install Dependencies ──────────────────────────────────────────────────
-
-install_deps() {
-    step "Installing dependencies"
-
-    cd "${APP_DIR}"
-
-    if [ "$PACKAGE_MANAGER" = "pnpm" ]; then
-        pnpm install --frozen-lockfile --prod=false 2>&1 | tail -5
+    if [ -n "$current_image" ]; then
+        docker tag "${APP_NAME}:latest" "${APP_NAME}:rollback" 2>/dev/null || true
+        log INFO "Current image tagged as ${BOLD}${APP_NAME}:rollback${NC} ✓"
     else
-        npm ci 2>&1 | tail -5
+        log WARN "No existing image to backup — skipping"
     fi
 
-    log INFO "Dependencies installed ✓"
     end_step
 }
 
-# ─── Build ──────────────────────────────────────────────────────────────────
-
-build_app() {
-    step "Building Next.js application"
-
+build_image() {
+    step "Building Docker image"
     cd "${APP_DIR}"
-
-    export NODE_ENV=production
 
     local build_start
     build_start=$(date +%s)
 
-    # Use set +e to capture exit code from build (pipe with tee masks it)
-    set +e
-    if [ "$PACKAGE_MANAGER" = "pnpm" ]; then
-        pnpm run build 2>&1 | tee -a "${LOG_FILE}"
-    else
-        npm run build 2>&1 | tee -a "${LOG_FILE}"
+    # Source env vars for build args
+    if [ -f "${APP_DIR}/.env.production" ]; then
+        set -a
+        source "${APP_DIR}/.env.production"
+        set +a
     fi
+
+    export APP_PORT="${APP_PORT}"
+
+    set +e
+    docker compose build --no-cache 2>&1 | tee -a "${LOG_FILE}"
     local build_status=${PIPESTATUS[0]}
     set -e
 
@@ -321,94 +207,30 @@ build_app() {
 
     if [ $build_status -ne 0 ]; then
         end_step
-        die "Build failed after ${build_duration}s (exit code: ${build_status})"
+        die "Docker build failed after ${build_duration}s (exit code: ${build_status})"
     fi
 
-    log INFO "Build completed in ${BOLD}${build_duration}s${NC} ✓"
+    log INFO "Image built in ${BOLD}${build_duration}s${NC} ✓"
     end_step
 }
 
-# ─── PM2 Process Management ────────────────────────────────────────────────
-
-generate_ecosystem_config() {
-    cat > "${APP_DIR}/ecosystem.config.js" << 'ECOSYSTEM'
-module.exports = {
-  apps: [
-    {
-      name: process.env.APP_NAME || 'entrancegateway-cms',
-      script: 'node_modules/.bin/next',
-      args: 'start',
-      cwd: __dirname,
-      instances: parseInt(process.env.PM2_INSTANCES || '2', 10),
-      exec_mode: 'cluster',
-      env: {
-        NODE_ENV: 'production',
-        PORT: process.env.PORT || 3000,
-      },
-
-      // Logging
-      error_file: './logs/pm2-error.log',
-      out_file: './logs/pm2-out.log',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-      merge_logs: true,
-
-      // Restart policy
-      max_restarts: 10,
-      min_uptime: '10s',
-      max_memory_restart: '512M',
-      restart_delay: 5000,
-
-      // Graceful shutdown
-      kill_timeout: 10000,
-      listen_timeout: 10000,
-      shutdown_with_message: true,
-
-      // Watch (disabled in production)
-      watch: false,
-    },
-  ],
-};
-ECOSYSTEM
-    log INFO "PM2 ecosystem config generated ✓"
-}
-
-start_or_restart_app() {
-    step "Starting/Restarting application with PM2"
-
+start_containers() {
+    step "Starting containers"
     cd "${APP_DIR}"
-    mkdir -p "${APP_DIR}/logs"
 
-    # Export env vars for ecosystem config
-    export APP_NAME="${APP_NAME}"
-    export PM2_INSTANCES="${PM2_INSTANCES}"
-    export PORT="${PORT}"
-
-    generate_ecosystem_config
-
-    if pm2 describe "${APP_NAME}" &>/dev/null; then
-        log INFO "Reloading existing PM2 process (zero-downtime)..."
-        pm2 reload ecosystem.config.js --update-env
-    else
-        log INFO "Starting new PM2 process..."
-        pm2 start ecosystem.config.js
+    # Source env vars
+    if [ -f "${APP_DIR}/.env.production" ]; then
+        set -a
+        source "${APP_DIR}/.env.production"
+        set +a
     fi
 
-    # Save PM2 process list so it survives reboots
-    pm2 save --force 2>/dev/null || true
+    export APP_PORT="${APP_PORT}"
 
-    log INFO "Application started on port ${BOLD}${PORT}${NC} ✓"
+    docker compose up -d 2>&1 | while read -r line; do log INFO "  $line"; done
+
+    log INFO "Container started on port ${BOLD}${APP_PORT}${NC} ✓"
     end_step
-}
-
-stop_app() {
-    step "Stopping application"
-
-    if pm2 describe "${APP_NAME}" &>/dev/null; then
-        pm2 stop "${APP_NAME}"
-        log INFO "Application stopped ✓"
-    else
-        log WARN "Application is not running"
-    fi
 }
 
 # ─── Health Check ───────────────────────────────────────────────────────────
@@ -417,7 +239,7 @@ health_check() {
     step "Running health check"
 
     local elapsed=0
-    local interval=2
+    local interval=3
 
     while [ $elapsed -lt $HEALTH_CHECK_TIMEOUT ]; do
         local http_code
@@ -432,7 +254,7 @@ health_check() {
         sleep $interval
         elapsed=$((elapsed + interval))
         if [ "$IS_CI" != "true" ]; then
-            echo -ne "\r  Waiting for response... (${elapsed}s / ${HEALTH_CHECK_TIMEOUT}s)"
+            echo -ne "\r  Waiting... (${elapsed}s / ${HEALTH_CHECK_TIMEOUT}s) — HTTP ${http_code}"
         else
             log INFO "  Waiting... (${elapsed}s / ${HEALTH_CHECK_TIMEOUT}s) — HTTP ${http_code}"
         fi
@@ -440,79 +262,63 @@ health_check() {
 
     echo ""
     end_step
+
+    # Dump container logs on failure
     log ERROR "Health check failed after ${HEALTH_CHECK_TIMEOUT}s"
-    log ERROR "The app may still be starting — check: pm2 logs ${APP_NAME}"
+    log ERROR "Container logs:"
+    docker compose logs --tail=30 2>/dev/null || true
     return 1
 }
 
 # ─── Rollback ───────────────────────────────────────────────────────────────
 
 rollback() {
-    step "Rolling back to previous build"
+    step "Rolling back to previous image"
 
-    if [ ! -d "${BACKUP_DIR}" ]; then
-        die "No backups found in ${BACKUP_DIR}"
+    local rollback_image
+    rollback_image=$(docker images --format '{{.ID}}' "${APP_NAME}:rollback" 2>/dev/null | head -1)
+
+    if [ -z "$rollback_image" ]; then
+        die "No rollback image found. Cannot rollback."
     fi
 
-    local latest_backup
-    latest_backup=$(ls -1d "${BACKUP_DIR}"/backup-* 2>/dev/null | tail -1)
-
-    if [ -z "$latest_backup" ]; then
-        die "No backup builds available"
+    if [ "$IS_CI" != "true" ]; then
+        if ! confirm "Rollback to previous image?"; then
+            die "Rollback cancelled"
+        fi
     fi
 
-    log INFO "Rolling back to: ${BOLD}$(basename "$latest_backup")${NC}"
+    log INFO "Stopping current container..."
+    docker compose down 2>/dev/null || true
 
-    if ! confirm "This will replace the current .next build. Continue?"; then
-        die "Rollback cancelled"
-    fi
+    log INFO "Restoring rollback image..."
+    docker tag "${APP_NAME}:rollback" "${APP_NAME}:latest"
 
-    # Replace current build
-    rm -rf "${APP_DIR}/.next"
-    cp -r "$latest_backup" "${APP_DIR}/.next"
-
-    # Restart
-    start_or_restart_app
+    start_containers
     health_check
 
     log INFO "Rollback complete ✓"
+    end_step
 }
 
 # ─── Status ─────────────────────────────────────────────────────────────────
 
 show_status() {
     step "Application Status"
-
-    echo ""
-    echo -e "${BOLD}PM2 Process:${NC}"
-    pm2 describe "${APP_NAME}" 2>/dev/null || echo "  Not running"
-
-    echo ""
-    echo -e "${BOLD}Git Info:${NC}"
     cd "${APP_DIR}"
+
+    echo ""
+    echo -e "${BOLD}Container:${NC}"
+    docker compose ps 2>/dev/null || echo "  Not running"
+
+    echo ""
+    echo -e "${BOLD}Images:${NC}"
+    docker images "${APP_NAME}" --format "  {{.Tag}}\t{{.Size}}\t{{.CreatedSince}}" 2>/dev/null || echo "  None"
+
+    echo ""
+    echo -e "${BOLD}Git:${NC}"
     echo "  Branch : $(git branch --show-current 2>/dev/null || echo 'N/A')"
     echo "  Commit : $(git rev-parse --short HEAD 2>/dev/null || echo 'N/A')"
-    echo "  Message: $(git log -1 --pretty=format:'%s' 2>/dev/null || echo 'N/A')"
-
-    echo ""
-    echo -e "${BOLD}Build:${NC}"
-    if [ -d "${APP_DIR}/.next" ]; then
-        echo "  Status : Built ✓"
-        echo "  Size   : $(du -sh "${APP_DIR}/.next" | awk '{print $1}')"
-        echo "  Date   : $(stat -c '%y' "${APP_DIR}/.next" 2>/dev/null | cut -d. -f1 || stat -f '%Sm' "${APP_DIR}/.next" 2>/dev/null || echo 'N/A')"
-    else
-        echo "  Status : Not built"
-    fi
-
-    echo ""
-    echo -e "${BOLD}Backups:${NC}"
-    if [ -d "${BACKUP_DIR}" ]; then
-        ls -1d "${BACKUP_DIR}"/backup-* 2>/dev/null | while read -r b; do
-            echo "  $(basename "$b")  ($(du -sh "$b" | awk '{print $1}'))"
-        done || echo "  None"
-    else
-        echo "  None"
-    fi
 
     echo ""
     echo -e "${BOLD}Health:${NC}"
@@ -531,34 +337,20 @@ show_status() {
 first_time_setup() {
     step "First-time server setup"
 
-    # Create .env.production from example if it doesn't exist
     if [ ! -f "${APP_DIR}/.env.production" ] && [ -f "${APP_DIR}/.env.example" ]; then
         cp "${APP_DIR}/.env.example" "${APP_DIR}/.env.production"
         log INFO "Created .env.production from .env.example"
-        log WARN "Edit .env.production with your production values before deploying!"
+        log WARN "Edit .env.production with your production values!"
     fi
 
-    # Install dependencies
-    install_deps
-
-    # Setup PM2 startup script
-    log INFO "Setting up PM2 startup on boot..."
-    pm2 startup 2>&1 | grep "sudo" | while read -r line; do
-        log INFO "  Run this command: ${BOLD}${line}${NC}"
-    done
-
-    # Create logs directory
     mkdir -p "${APP_DIR}/logs"
-
-    # Create backup directory
-    mkdir -p "${BACKUP_DIR}"
 
     log INFO "Setup complete! Next steps:"
     echo ""
     echo -e "  1. Edit ${BOLD}.env.production${NC} with your production values"
-    echo -e "  2. Run ${BOLD}./deploy.sh${NC} to build and start the application"
-    echo -e "  3. Run the PM2 startup command printed above (if any)"
+    echo -e "  2. Run ${BOLD}./deploy.sh${NC} to build and start"
     echo ""
+    end_step
 }
 
 # ─── Full Deploy ────────────────────────────────────────────────────────────
@@ -569,17 +361,15 @@ full_deploy() {
 
     echo ""
     echo -e "${BLUE}${BOLD}╔══════════════════════════════════════════════════╗${NC}"
-    echo -e "${BLUE}${BOLD}║    EntranceGateway CMS — Production Deployment  ║${NC}"
+    echo -e "${BLUE}${BOLD}║   EntranceGateway CMS — Docker Deployment       ║${NC}"
     echo -e "${BLUE}${BOLD}╚══════════════════════════════════════════════════╝${NC}"
     echo ""
 
     check_prerequisites
-    check_env_vars
     pull_latest
-    create_backup
-    install_deps
-    build_app
-    start_or_restart_app
+    backup_image
+    build_image
+    start_containers
     health_check
 
     local deploy_end
@@ -593,31 +383,24 @@ full_deploy() {
     echo ""
     echo -e "  App     : ${BOLD}${APP_NAME}${NC}"
     echo -e "  URL     : ${BOLD}${HEALTH_CHECK_URL}${NC}"
-    echo -e "  Port    : ${BOLD}${PORT}${NC}"
-    echo -e "  Mode    : ${BOLD}cluster × ${PM2_INSTANCES} instances${NC}"
+    echo -e "  Port    : ${BOLD}${APP_PORT}${NC}"
     echo -e "  Commit  : ${BOLD}$(git rev-parse --short HEAD 2>/dev/null || echo 'N/A')${NC}"
     echo -e "  Duration: ${BOLD}${total_duration}s${NC}"
-    echo -e "  Logs    : ${BOLD}pm2 logs ${APP_NAME}${NC}"
+    echo -e "  Logs    : ${BOLD}docker compose logs -f${NC}"
     echo ""
 }
 
-# ─── CI Deploy (non-interactive, used by GitHub Actions) ────────────────────
+# ─── CI Modes ───────────────────────────────────────────────────────────────
 
 ci_deploy() {
     IS_CI="true"
     log INFO "CI/CD deployment started"
     log INFO "  Commit: ${GITHUB_SHA:-unknown}"
     log INFO "  Branch: ${GITHUB_REF:-unknown}"
-    log INFO "  Run:    ${GITHUB_RUN:-unknown}"
     log INFO "  Actor:  ${GITHUB_ACTOR:-unknown}"
 
-    # Record deployment start in log
     echo "" >> "${LOG_FILE}"
     echo "===== CI DEPLOY $(timestamp) ====" >> "${LOG_FILE}"
-    echo "Commit: ${GITHUB_SHA:-unknown}" >> "${LOG_FILE}"
-    echo "Branch: ${GITHUB_REF:-unknown}" >> "${LOG_FILE}"
-    echo "Actor:  ${GITHUB_ACTOR:-unknown}" >> "${LOG_FILE}"
-    echo "" >> "${LOG_FILE}"
 
     full_deploy
 }
@@ -625,113 +408,52 @@ ci_deploy() {
 ci_rollback() {
     IS_CI="true"
     log INFO "CI/CD rollback started by ${GITHUB_ACTOR:-unknown}"
-
     check_prerequisites
-
-    # Non-interactive rollback
-    if [ ! -d "${BACKUP_DIR}" ]; then
-        die "No backups found in ${BACKUP_DIR}"
-    fi
-
-    local latest_backup
-    latest_backup=$(ls -1d "${BACKUP_DIR}"/backup-* 2>/dev/null | tail -1)
-    if [ -z "$latest_backup" ]; then
-        die "No backup builds available"
-    fi
-
-    log INFO "Rolling back to: $(basename "$latest_backup")"
-
-    rm -rf "${APP_DIR}/.next"
-    cp -r "$latest_backup" "${APP_DIR}/.next"
-
-    start_or_restart_app
-    health_check
-
-    log INFO "Rollback complete ✓"
+    rollback
 }
 
 # ─── Help ───────────────────────────────────────────────────────────────────
 
 show_help() {
     echo ""
-    echo -e "${BOLD}EntranceGateway CMS — Deployment Script${NC}"
+    echo -e "${BOLD}EntranceGateway CMS — Docker Deployment Script${NC}"
     echo ""
     echo "Usage: ./deploy.sh [OPTION]"
     echo ""
     echo "Options:"
-    echo "  (none)            Full deploy: pull → install → build → restart"
+    echo "  (none)            Full deploy: pull → build image → start container"
     echo "  --setup           First-time server setup"
-    echo "  --build-only      Build without restarting PM2"
-    echo "  --restart-only    Restart PM2 without rebuilding"
-    echo "  --rollback        Rollback to the previous build"
+    echo "  --restart         Restart containers"
+    echo "  --rollback        Rollback to previous image"
     echo "  --status          Show application status"
-    echo "  --stop            Stop the application"
-    echo "  --logs            Tail PM2 logs"
-    echo "  --help            Show this help message"
+    echo "  --stop            Stop containers"
+    echo "  --logs            Tail container logs"
+    echo "  --ci              CI deploy (non-interactive)"
+    echo "  --ci-rollback     CI rollback (non-interactive)"
+    echo "  --help            Show this help"
     echo ""
     echo "Environment variables:"
-    echo "  PORT              Application port (default: 3000)"
-    echo "  PM2_INSTANCES     Number of cluster instances (default: 2)"
-    echo ""
-    echo "Examples:"
-    echo "  ./deploy.sh                          # Standard deploy"
-    echo "  PORT=3001 PM2_INSTANCES=4 ./deploy.sh  # Custom port & instances"
-    echo "  ./deploy.sh --rollback               # Rollback to previous build"
+    echo "  APP_PORT          Host port (default: 6030)"
     echo ""
 }
 
 # ─── Main ───────────────────────────────────────────────────────────────────
 
 main() {
-    # Global error trap — captures failures with context
     trap 'log ERROR "Command failed at line ${LINENO} (exit code: $?)"' ERR
 
     case "${1:-}" in
-        --setup)
-            check_prerequisites
-            first_time_setup
-            ;;
-        --build-only)
-            check_prerequisites
-            install_deps
-            build_app
-            log INFO "Build complete. Run ${BOLD}./deploy.sh --restart-only${NC} to apply."
-            ;;
-        --restart-only)
-            check_prerequisites
-            start_or_restart_app
-            health_check
-            ;;
-        --rollback)
-            check_prerequisites
-            rollback
-            ;;
-        --ci)
-            ci_deploy
-            ;;
-        --ci-rollback)
-            ci_rollback
-            ;;
-        --status)
-            show_status
-            ;;
-        --stop)
-            stop_app
-            ;;
-        --logs)
-            pm2 logs "${APP_NAME}" --lines 100
-            ;;
-        --help|-h)
-            show_help
-            ;;
-        "")
-            full_deploy
-            ;;
-        *)
-            echo -e "${RED}Unknown option: $1${NC}"
-            show_help
-            exit 1
-            ;;
+        --setup)        check_prerequisites; first_time_setup ;;
+        --restart)      cd "${APP_DIR}"; docker compose restart; health_check ;;
+        --rollback)     check_prerequisites; rollback ;;
+        --ci)           ci_deploy ;;
+        --ci-rollback)  ci_rollback ;;
+        --status)       show_status ;;
+        --stop)         cd "${APP_DIR}"; docker compose down; log INFO "Stopped ✓" ;;
+        --logs)         cd "${APP_DIR}"; docker compose logs -f --tail=100 ;;
+        --help|-h)      show_help ;;
+        "")             full_deploy ;;
+        *)              echo -e "${RED}Unknown option: $1${NC}"; show_help; exit 1 ;;
     esac
 }
 

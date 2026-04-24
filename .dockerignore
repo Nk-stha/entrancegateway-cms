@@ -1,0 +1,14 @@
+node_modules
+.next
+.git
+.gitignore
+.env*
+!.env.example
+deploy.sh
+deploy.log
+logs/
+.deploy-backups/
+*.md
+.DS_Store
+.vscode
+.kiro

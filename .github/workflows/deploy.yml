@@ -1,28 +1,19 @@
 # ============================================================================
-#  EntranceGateway CMS — Continuous Deployment to VPS
+#  EntranceGateway CMS — CD Pipeline (Docker on VPS)
 # ============================================================================
 #
-#  Triggers:
-#    - Push to 'main' branch
-#    - Manual dispatch from GitHub Actions UI
-#
 #  Required GitHub Secrets:
-#    VPS_HOST          — Server IP or hostname (e.g. 103.45.67.89)
-#    VPS_USER          — SSH user (e.g. deploy, ubuntu, root)
-#    VPS_PASSWORD      — SSH password for the user
-#    VPS_PORT          — SSH port (optional, defaults to 22)
-#    DEPLOY_PATH       — Absolute path on server (e.g. /var/www/entrancegateway-cms)
+#    VPS_HOST          — Server IP or hostname
+#    VPS_USER          — SSH user
+#    VPS_PASSWORD      — SSH password
+#    DEPLOY_PATH       — Project path on server (e.g. /opt/entrancegateway-cms)
 #    ENV_PRODUCTION    — Contents of .env.production file
-#    APP_PORT          — Application port (optional, defaults to 3000)
-#    PM2_INSTANCES     — PM2 cluster instances (optional, defaults to 2)
+#    APP_PORT          — Host port (optional, defaults to 6030)
 #
-#  First-time server setup:
-#    1. SSH into your VPS
-#    2. Install Node.js >= 18, PM2, Git
-#    3. Clone the repo to DEPLOY_PATH
-#    4. Run: ./deploy.sh --setup
-#    5. Configure the GitHub Secrets listed above
-#    6. Push to main — the pipeline handles the rest
+#  Prerequisites on VPS:
+#    - Docker & Docker Compose installed
+#    - Git installed
+#    - Repo cloned at DEPLOY_PATH
 #
 # ============================================================================
 
@@ -44,7 +35,6 @@ on:
           - restart
           - status
 
-# Prevent concurrent deployments
 concurrency:
   group: production-deploy
   cancel-in-progress: false
@@ -53,66 +43,50 @@ env:
   NODE_VERSION: '20'
 
 jobs:
-  # ─── Lint & Build Check ─────────────────────────────────────────────────
+  # ─── Validate ───────────────────────────────────────────────────────────
   validate:
     name: 🔍 Validate Build
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Lint check
-        run: npm run lint
+      - run: npm ci
+      - run: npm run lint
         continue-on-error: true
-
-      - name: Type check
-        run: npx tsc --noEmit
-        continue-on-error: true
-
       - name: Build check
         run: |
           echo "API_BASE_URL=https://api.entrancegateway.com" > .env.production
           echo "NEXT_PUBLIC_API_URL=/api/proxy" >> .env.production
           npm run build
 
-  # ─── Deploy to VPS ──────────────────────────────────────────────────────
+  # ─── Deploy ─────────────────────────────────────────────────────────────
   deploy:
     name: 🚀 Deploy to VPS
     needs: validate
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     if: |
       github.event_name == 'push' ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'deploy')
     environment:
       name: production
-      url: https://cms.entrancegateway.com
 
     steps:
       - name: 📋 Deployment info
         run: |
           echo "╔══════════════════════════════════════════════════╗"
-          echo "║    EntranceGateway CMS — CD Pipeline             ║"
+          echo "║    EntranceGateway CMS — Docker CD Pipeline      ║"
           echo "╚══════════════════════════════════════════════════╝"
-          echo ""
-          echo "Trigger  : ${{ github.event_name }}"
-          echo "Branch   : ${{ github.ref_name }}"
-          echo "Commit   : ${{ github.sha }}"
-          echo "Actor    : ${{ github.actor }}"
-          echo "Run      : ${{ github.run_number }}"
+          echo "Branch : ${{ github.ref_name }}"
+          echo "Commit : ${{ github.sha }}"
+          echo "Actor  : ${{ github.actor }}"
 
       - name: 🔧 Install sshpass
-        run: sudo apt-get update && sudo apt-get install -y sshpass
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq sshpass
 
       - name: 🔗 Test SSH connection
         env:
@@ -121,21 +95,8 @@ jobs:
           sshpass -e ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 \
             -p ${{ secrets.VPS_PORT || 22 }} \
             ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
-            "echo '✓ SSH connection successful' && hostname && uptime" || {
-            echo "::error::SSH connection failed. Check VPS_HOST, VPS_USER, VPS_PASSWORD, and VPS_PORT secrets."
-            exit 1
-          }
-
-      - name: 📂 Verify deploy path
-        env:
-          SSHPASS: ${{ secrets.VPS_PASSWORD }}
-        run: |
-          sshpass -e ssh -o StrictHostKeyChecking=no \
-            -p ${{ secrets.VPS_PORT || 22 }} \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
-            "test -d ${{ secrets.DEPLOY_PATH }} && test -f ${{ secrets.DEPLOY_PATH }}/deploy.sh" || {
-            echo "::error::Deploy path '${{ secrets.DEPLOY_PATH }}' not found or deploy.sh missing."
-            echo "::error::SSH into your server and run: cd ${{ secrets.DEPLOY_PATH }} && ./deploy.sh --setup"
+            "echo '✓ Connected' && docker --version && docker compose version" || {
+            echo "::error::SSH failed or Docker not installed on VPS."
             exit 1
           }
 
@@ -148,9 +109,8 @@ jobs:
             -p ${{ secrets.VPS_PORT || 22 }} \
             ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
             "cat > ${{ secrets.DEPLOY_PATH }}/.env.production"
-          echo "✓ Environment file written"
 
-      - name: 🚀 Run deployment
+      - name: 🚀 Deploy
         env:
           SSHPASS: ${{ secrets.VPS_PASSWORD }}
         run: |
@@ -158,31 +118,25 @@ jobs:
             -p ${{ secrets.VPS_PORT || 22 }} \
             ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "
               cd ${{ secrets.DEPLOY_PATH }}
-
               export CI=true
-              export PORT=${{ secrets.APP_PORT || 3000 }}
-              export PM2_INSTANCES=${{ secrets.PM2_INSTANCES || 2 }}
+              export APP_PORT=${{ secrets.APP_PORT || 6030 }}
               export GITHUB_SHA='${{ github.sha }}'
               export GITHUB_REF='${{ github.ref_name }}'
-              export GITHUB_RUN='${{ github.run_number }}'
               export GITHUB_ACTOR='${{ github.actor }}'
-
               bash deploy.sh --ci 2>&1
           " || {
-            echo ""
-            echo "::error::Deployment failed! Fetching error logs..."
-
-            # Grab deploy.log for debugging
+            echo "::error::Deployment failed!"
+            # Fetch logs for debugging
             sshpass -e ssh -o StrictHostKeyChecking=no \
               -p ${{ secrets.VPS_PORT || 22 }} \
               ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
-              "echo '--- deploy.log (last 50 lines) ---' && tail -50 ${{ secrets.DEPLOY_PATH }}/deploy.log 2>/dev/null; \
-               echo ''; echo '--- PM2 error logs ---' && pm2 logs entrancegateway-cms --lines 30 --nostream 2>/dev/null" || true
-
+              "tail -50 ${{ secrets.DEPLOY_PATH }}/deploy.log 2>/dev/null; \
+               echo '--- Container logs ---'; \
+               cd ${{ secrets.DEPLOY_PATH }} && docker compose logs --tail=30 2>/dev/null" || true
             exit 1
           }
 
-      - name: 📊 Post-deploy verification
+      - name: 📊 Post-deploy status
         if: success()
         env:
           SSHPASS: ${{ secrets.VPS_PASSWORD }}
@@ -192,32 +146,20 @@ jobs:
             ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
             "cd ${{ secrets.DEPLOY_PATH }} && bash deploy.sh --status" || true
 
-      - name: 📢 Deployment summary
-        if: success()
+      - name: 📢 Summary
+        if: always()
         run: |
-          echo "## ✅ Deployment Successful" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "## ✅ Deployment Successful" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## ❌ Deployment Failed" >> $GITHUB_STEP_SUMMARY
+          fi
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Detail | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
           echo "| **Commit** | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Branch** | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Actor** | @${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Run** | #${{ github.run_number }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Server** | \`${{ secrets.VPS_HOST }}\` |" >> $GITHUB_STEP_SUMMARY
-
-      - name: ❌ Deployment failure summary
-        if: failure()
-        run: |
-          echo "## ❌ Deployment Failed" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Detail | Value |" >> $GITHUB_STEP_SUMMARY
-          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| **Commit** | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Branch** | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Actor** | @${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Check the deploy logs above for details." >> $GITHUB_STEP_SUMMARY
-          echo "To rollback: run the workflow manually with action = \`rollback\`" >> $GITHUB_STEP_SUMMARY
 
   # ─── Rollback ───────────────────────────────────────────────────────────
   rollback:
@@ -225,12 +167,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'rollback'
-
     steps:
       - name: 🔧 Install sshpass
-        run: sudo apt-get update && sudo apt-get install -y sshpass
-
-      - name: ⏪ Execute rollback
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq sshpass
+      - name: ⏪ Rollback
         env:
           SSHPASS: ${{ secrets.VPS_PASSWORD }}
         run: |
@@ -239,18 +179,9 @@ jobs:
             ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "
               cd ${{ secrets.DEPLOY_PATH }}
               export CI=true
+              export APP_PORT=${{ secrets.APP_PORT || 6030 }}
               bash deploy.sh --ci-rollback 2>&1
-          " || {
-            echo "::error::Rollback failed!"
-            exit 1
-          }
-
-      - name: Rollback summary
-        if: success()
-        run: |
-          echo "## ⏪ Rollback Successful" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Rolled back to the previous build on \`${{ secrets.VPS_HOST }}\`." >> $GITHUB_STEP_SUMMARY
+          "
 
   # ─── Restart ────────────────────────────────────────────────────────────
   restart:
@@ -258,12 +189,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'restart'
-
     steps:
       - name: 🔧 Install sshpass
-        run: sudo apt-get update && sudo apt-get install -y sshpass
-
-      - name: 🔄 Restart application
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq sshpass
+      - name: 🔄 Restart
         env:
           SSHPASS: ${{ secrets.VPS_PASSWORD }}
         run: |
@@ -271,22 +200,20 @@ jobs:
             -p ${{ secrets.VPS_PORT || 22 }} \
             ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "
               cd ${{ secrets.DEPLOY_PATH }}
-              export CI=true
-              bash deploy.sh --restart-only 2>&1
+              export APP_PORT=${{ secrets.APP_PORT || 6030 }}
+              docker compose restart
           "
 
   # ─── Status ─────────────────────────────────────────────────────────────
   status:
-    name: 📊 Status Check
+    name: 📊 Status
     runs-on: ubuntu-latest
     timeout-minutes: 3
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'status'
-
     steps:
       - name: 🔧 Install sshpass
-        run: sudo apt-get update && sudo apt-get install -y sshpass
-
-      - name: 📊 Get status
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq sshpass
+      - name: 📊 Status
         env:
           SSHPASS: ${{ secrets.VPS_PASSWORD }}
         run: |
