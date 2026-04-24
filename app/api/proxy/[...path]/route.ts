@@ -56,6 +56,7 @@ async function proxyRequest(
     
     // Add /api/v1/ prefix only for quiz-related endpoints
     const quizEndpoints = [
+      'auth',
       'categories',
       'courses', 
       'entrance-types',

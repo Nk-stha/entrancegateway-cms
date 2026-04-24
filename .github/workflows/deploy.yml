@@ -110,6 +110,20 @@ jobs:
             ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
             "cat > ${{ secrets.DEPLOY_PATH }}/.env.production"
 
+      - name: 🔄 Pull latest code on VPS
+        env:
+          SSHPASS: ${{ secrets.VPS_PASSWORD }}
+        run: |
+          sshpass -e ssh -o StrictHostKeyChecking=no \
+            -p ${{ secrets.VPS_PORT || 22 }} \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "
+              cd ${{ secrets.DEPLOY_PATH }}
+              git fetch --all
+              git reset --hard origin/main
+              chmod +x deploy.sh
+              echo '✓ Code updated to ${{ github.sha }}'
+          "
+
       - name: 🚀 Deploy
         env:
           SSHPASS: ${{ secrets.VPS_PASSWORD }}
